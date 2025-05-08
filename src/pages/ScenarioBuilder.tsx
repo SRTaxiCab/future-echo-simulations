@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,7 @@ import { ScenarioDefinition } from '@/components/scenario-builder/ScenarioDefini
 import { VariableAdjustment } from '@/components/scenario-builder/VariableAdjustment';
 import { SimulationResults } from '@/components/scenario-builder/SimulationResults';
 import { SidebarTemplates } from '@/components/scenario-builder/SidebarTemplates';
+import { CausalTree } from '@/components/scenario-builder/CausalTree';
 
 // Import data and types
 import {
@@ -22,6 +23,7 @@ import {
   probabilityData,
   COLORS
 } from '@/components/scenario-builder/data';
+import { getCausalTreeData } from '@/components/scenario-builder/causal-tree-data';
 
 const ScenarioBuilder = () => {
   // State management
@@ -33,7 +35,15 @@ const ScenarioBuilder = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isResultReady, setIsResultReady] = useState(false);
   const [variables, setVariables] = useState<Array<{name: string, value: number}>>([]);
+  const [causalTreeData, setCausalTreeData] = useState(getCausalTreeData('', []));
   const { toast } = useToast();
+  
+  // Update causal tree data when sector or variables change
+  useEffect(() => {
+    if (sector || variables.length > 0) {
+      setCausalTreeData(getCausalTreeData(sector, variables));
+    }
+  }, [sector, variables]);
   
   // Event handlers
   const handleAddVariable = () => {
@@ -48,11 +58,11 @@ const ScenarioBuilder = () => {
     }
   };
   
-  const handleUpdateVariable = (index: number, field: 'name' | 'value', value: string | number) => {
+  const handleUpdateVariable = (index: number, field: 'name' | 'value', value: any) => {
     const updatedVariables = [...variables];
     updatedVariables[index] = {
       ...updatedVariables[index],
-      [field]: value
+      [field]: field === 'value' ? Number(value) : value
     };
     setVariables(updatedVariables);
   };
@@ -148,6 +158,13 @@ const ScenarioBuilder = () => {
               onUpdateVariable={handleUpdateVariable}
               onRemoveVariable={handleRemoveVariable}
               onRunSimulation={runSimulation}
+            />
+            
+            {/* Causal Tree (New Component) */}
+            <CausalTree 
+              data={causalTreeData} 
+              width={600} 
+              height={400} 
             />
             
             {/* Simulation results */}
