@@ -139,9 +139,12 @@ const ScenarioBuilder = () => {
     }
   };
   
-  const handleUpdateVariable = (index: number, field: 'name' | 'value', value: any) => {
+  const handleUpdateVariable = (index: number, field: 'name' | 'value', value: string | number) => {
     const updatedVariables = [...variables];
-    updatedVariables[index][field] = value;
+    updatedVariables[index] = {
+      ...updatedVariables[index],
+      [field]: value
+    };
     setVariables(updatedVariables);
   };
   
