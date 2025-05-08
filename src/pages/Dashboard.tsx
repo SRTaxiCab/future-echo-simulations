@@ -5,6 +5,7 @@ import { AlertCard } from '@/components/AlertCard';
 import { EventCard, Event } from '@/components/EventCard';
 import { StatusCard } from '@/components/StatusCard';
 import { TimelineChart } from '@/components/TimelineChart';
+import { Card } from '@/components/ui/card';
 import { 
   Activity, 
   TrendingUp, 

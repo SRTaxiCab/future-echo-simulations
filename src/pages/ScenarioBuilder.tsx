@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -140,7 +139,7 @@ const ScenarioBuilder = () => {
     }
   };
   
-  const handleUpdateVariable = (index: number, field: 'name' | 'value', value: string | number) => {
+  const handleUpdateVariable = (index: number, field: 'name' | 'value', value: any) => {
     const updatedVariables = [...variables];
     updatedVariables[index][field] = value;
     setVariables(updatedVariables);
