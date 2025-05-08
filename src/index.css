@@ -1,92 +1,50 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 11%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 13%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 196 94% 48%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217 32% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 70%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 160 84% 39%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62.8% 40.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --border: 217 32% 22%;
+    --input: 217 32% 22%;
+    --ring: 196 94% 48%;
+
+    --radius: 0.25rem;
+    
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 196 94% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 217 32% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 32% 15%;
+    --sidebar-ring: 196 94% 48%;
   }
 }
 
@@ -96,6 +54,122 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    @apply bg-cyber-grid;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)) hsl(var(--secondary));
+  }
+
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--secondary));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary));
+    border-radius: 5px;
+  }
+  
+  .cyber-border {
+    @apply relative;
+  }
+  
+  .cyber-border:before {
+    @apply content-[''] absolute inset-0 border border-cyber p-[1px] rounded-md bg-gradient-to-b from-cyber to-transparent opacity-60;
+    filter: blur(0.5px);
+    mask: linear-gradient(black, black) content-box content-box, linear-gradient(black, black);
+    mask-composite: exclude;
+  }
+
+  .neural-border {
+    @apply relative;
+  }
+  
+  .neural-border:before {
+    @apply content-[''] absolute inset-0 border border-neural p-[1px] rounded-md bg-gradient-to-b from-neural to-transparent opacity-60;
+    filter: blur(0.5px);
+    mask: linear-gradient(black, black) content-box content-box, linear-gradient(black, black);
+    mask-composite: exclude;
+  }
+
+  .card-glow {
+    @apply relative;
+  }
+
+  .card-glow:after {
+    content: "";
+    @apply absolute -inset-px rounded-lg bg-gradient-to-b from-cyber/50 to-transparent opacity-0 transition-opacity duration-500;
+  }
+
+  .card-glow:hover:after {
+    @apply opacity-100;
+  }
+
+  .status-dot {
+    --status-color: hsl(196, 94%, 48%);
+  }
+
+  .status-dot.simulating {
+    --status-color: hsl(160, 84%, 39%);
+  }
+
+  .status-dot.anomaly {
+    --status-color: hsl(0, 62.8%, 40.6%);
+  }
+
+  .secret-stamp {
+    @apply -rotate-12 text-destructive border-2 border-destructive/80 rounded px-2 py-px text-xs font-bold uppercase tracking-wider;
+  }
+
+  .redacted {
+    @apply relative inline-block bg-destructive/80 text-transparent select-none mx-0.5;
+  }
+
+  .redacted:after {
+    content: "";
+    @apply absolute inset-0 bg-black/50;
+  }
+
+  .data-feed {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .data-feed:before {
+    content: "";
+    @apply absolute inset-0 pointer-events-none;
+    background-image: 
+      linear-gradient(0deg, var(--random-width-1, 1px) var(--random-color-1, rgba(14, 165, 233, 0.3)), transparent 30%),
+      linear-gradient(0deg, var(--random-width-2, 1px) var(--random-color-2, rgba(14, 165, 233, 0.3)), transparent 30%),
+      linear-gradient(0deg, var(--random-width-3, 1px) var(--random-color-3, rgba(14, 165, 233, 0.2)), transparent 30%);
+    background-repeat: no-repeat;
+    background-position: 
+      calc(var(--random-pos-1, 10%) - 10px) 0,
+      calc(var(--random-pos-2, 50%) - 10px) 0,
+      calc(var(--random-pos-3, 80%) - 10px) 0;
+    animation: data-stream 2.5s infinite linear;
+    opacity: 0.7;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-card/60 backdrop-blur-md border border-white/10 rounded-md shadow-lg;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground transition-colors;
+  }
+  
+  .sidebar-item.active {
+    @apply bg-sidebar-accent text-cyber;
+  }
+  
+  .sidebar-item:hover:not(.active) {
+    @apply bg-sidebar-accent/50;
   }
 }
