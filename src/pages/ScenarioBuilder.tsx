@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Download } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 // Import components
 import { ScenarioDefinition } from '@/components/scenario-builder/ScenarioDefinition';
@@ -24,6 +25,8 @@ import {
   COLORS
 } from '@/components/scenario-builder/data';
 import { getCausalTreeData } from '@/components/scenario-builder/causal-tree-data';
+import { saveScenarioOffline } from '@/utils/offlineSupport';
+import { ScenarioData } from '@/components/scenario-builder/types';
 
 const ScenarioBuilder = () => {
   // State management
@@ -36,7 +39,23 @@ const ScenarioBuilder = () => {
   const [isResultReady, setIsResultReady] = useState(false);
   const [variables, setVariables] = useState<Array<{name: string, value: number}>>([]);
   const [causalTreeData, setCausalTreeData] = useState(getCausalTreeData('', []));
+  const [currentScenarioId, setCurrentScenarioId] = useState<string>(uuidv4());
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const { toast } = useToast();
+  
+  // Track online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   // Update causal tree data when sector or variables change
   useEffect(() => {
@@ -97,23 +116,122 @@ const ScenarioBuilder = () => {
   };
   
   const handleSaveScenario = () => {
+    if (!isResultReady) {
+      toast({
+        title: "Cannot save scenario",
+        description: "Please run a simulation before saving",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create scenario data object
+    const scenarioData: ScenarioData = {
+      id: currentScenarioId,
+      name: scenarioName,
+      hypothesis,
+      region,
+      sector,
+      timePeriod,
+      variables,
+      isResultReady,
+      timestamp: new Date()
+    };
+    
+    // Save scenario (offline for now)
+    saveScenarioOffline(scenarioData);
+    
+    // Generate new ID for next scenario
+    setCurrentScenarioId(uuidv4());
+    
     toast({
       title: "Scenario Saved",
       description: `"${scenarioName}" has been added to your scenarios library`
     });
   };
   
+  const handleExportScenario = () => {
+    if (!isResultReady) {
+      toast({
+        title: "Cannot export scenario",
+        description: "Please run a simulation before exporting",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create export data
+    const exportData = {
+      scenarioName,
+      hypothesis,
+      region,
+      sector,
+      timePeriod,
+      variables,
+      results: {
+        impactData,
+        timelineData,
+        probabilityData,
+        causalTreeData
+      },
+      exportDate: new Date().toISOString()
+    };
+    
+    // Create downloadable file
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${scenarioName.replace(/\s+/g, '-').toLowerCase()}-scenario.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Scenario Exported",
+      description: `"${scenarioName}" has been exported as JSON`
+    });
+  };
+  
+  const handleLoadTemplate = (template: Partial<ScenarioData>) => {
+    if (isResultReady || variables.length > 0) {
+      if (!confirm("Loading a template will replace your current scenario. Continue?")) {
+        return;
+      }
+    }
+    
+    // Reset current scenario
+    setCurrentScenarioId(uuidv4());
+    setIsResultReady(false);
+    
+    // Load template data
+    if (template.name) setScenarioName(template.name);
+    if (template.hypothesis) setHypothesis(template.hypothesis);
+    if (template.region) setRegion(template.region);
+    if (template.sector) setSector(template.sector);
+    if (template.timePeriod) setTimePeriod(template.timePeriod);
+    if (template.variables) setVariables([...template.variables]);
+  };
+  
   return (
     <AppLayout>
       <div className="p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <h1 className="text-2xl font-bold">Scenario Builder</h1>
+          <div>
+            <h1 className="text-2xl font-bold">Scenario Builder</h1>
+            {!isOnline && (
+              <div className="mt-1 flex items-center">
+                <span className="h-2 w-2 rounded-full bg-amber-500 mr-2"></span>
+                <span className="text-sm text-amber-500">Offline Mode - Changes will sync when you reconnect</span>
+              </div>
+            )}
+          </div>
           <div className="flex gap-2 mt-2 md:mt-0">
             <Button 
               variant="outline" 
               className="flex items-center gap-1"
               onClick={handleSaveScenario}
-              disabled={!isResultReady}
             >
               <Save className="h-4 w-4" />
               <span>Save</span>
@@ -122,6 +240,7 @@ const ScenarioBuilder = () => {
               disabled={!isResultReady}
               variant="outline" 
               className="flex items-center gap-1"
+              onClick={handleExportScenario}
             >
               <Download className="h-4 w-4" />
               <span>Export</span>
@@ -160,7 +279,7 @@ const ScenarioBuilder = () => {
               onRunSimulation={runSimulation}
             />
             
-            {/* Causal Tree (New Component) */}
+            {/* Causal Tree */}
             <CausalTree 
               data={causalTreeData} 
               width={600} 
@@ -184,6 +303,7 @@ const ScenarioBuilder = () => {
             <SidebarTemplates 
               isResultReady={isResultReady}
               sector={sector}
+              onLoadTemplate={handleLoadTemplate}
             />
           </div>
         </div>
