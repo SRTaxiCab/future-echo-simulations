@@ -6,7 +6,7 @@ import {
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  RechartsTooltip, 
+  Tooltip, 
   ResponsiveContainer,
 } from 'recharts';
 import { TimelineData } from '../types';
@@ -34,7 +34,7 @@ export const TimelineChart: React.FC<TimelineChartProps> = ({ data }) => {
             <CartesianGrid strokeDasharray="3 3" stroke="#2a2f3a" />
             <XAxis dataKey="month" stroke="#6b7280" fontSize={11} />
             <YAxis stroke="#6b7280" fontSize={11} />
-            <RechartsTooltip 
+            <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
                 borderColor: '#0ea5e9',

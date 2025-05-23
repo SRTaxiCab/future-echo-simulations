@@ -5,7 +5,7 @@ import {
   Pie, 
   Cell, 
   ResponsiveContainer,
-  RechartsTooltip
+  Tooltip
 } from 'recharts';
 import { ProbabilityData } from '../types';
 
@@ -33,7 +33,7 @@ export const ProbabilityChart: React.FC<ProbabilityChartProps> = ({ data, colors
               <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
             ))}
           </Pie>
-          <RechartsTooltip 
+          <Tooltip 
             formatter={(value) => [`${value}%`, 'Probability']}
             contentStyle={{ 
               backgroundColor: 'rgba(15, 23, 42, 0.9)',

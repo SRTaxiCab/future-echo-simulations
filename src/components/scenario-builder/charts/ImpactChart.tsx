@@ -6,7 +6,7 @@ import {
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  RechartsTooltip, 
+  Tooltip, 
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts';
@@ -42,7 +42,7 @@ export const ImpactChart: React.FC<ImpactChartProps> = ({ data }) => {
               fontSize={11} 
               width={120} 
             />
-            <RechartsTooltip 
+            <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
                 borderColor: '#0ea5e9',
