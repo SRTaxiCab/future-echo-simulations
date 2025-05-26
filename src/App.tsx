@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import TimelineViewer from "./pages/TimelineViewer";
 import ScenarioBuilder from "./pages/ScenarioBuilder";
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Login />} />
+            <Route path="/auth" element={<Auth />} />
             
             {/* Protected routes */}
             <Route path="/dashboard" element={
