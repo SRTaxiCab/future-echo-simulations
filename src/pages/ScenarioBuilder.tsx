@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Download } from 'lucide-react';
+import { Save, Download, AlertCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 // Import components
@@ -41,6 +41,8 @@ const ScenarioBuilder = () => {
   const [causalTreeData, setCausalTreeData] = useState(getCausalTreeData('', []));
   const [currentScenarioId, setCurrentScenarioId] = useState<string>(uuidv4());
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [simulationProgress, setSimulationProgress] = useState(0);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const { toast } = useToast();
   
   // Track online status
@@ -63,11 +65,45 @@ const ScenarioBuilder = () => {
       setCausalTreeData(getCausalTreeData(sector, variables));
     }
   }, [sector, variables]);
+
+  // Validation function
+  const validateScenario = (): string[] => {
+    const errors: string[] = [];
+    
+    if (!scenarioName.trim()) {
+      errors.push('Scenario name is required');
+    }
+    if (!hypothesis.trim()) {
+      errors.push('Hypothesis description is required');
+    }
+    if (!region) {
+      errors.push('Geographic region must be selected');
+    }
+    if (!sector) {
+      errors.push('Primary sector must be selected');
+    }
+    if (!timePeriod) {
+      errors.push('Time horizon must be selected');
+    }
+    if (variables.length === 0) {
+      errors.push('At least one variable must be added');
+    }
+    
+    // Validate variables
+    variables.forEach((variable, index) => {
+      if (!variable.name) {
+        errors.push(`Variable ${index + 1} must have a type selected`);
+      }
+    });
+    
+    return errors;
+  };
   
   // Event handlers
   const handleAddVariable = () => {
     if (variables.length < 5) {
       setVariables([...variables, { name: '', value: 50 }]);
+      setValidationErrors([]);
     } else {
       toast({
         title: "Maximum variables reached",
@@ -84,6 +120,7 @@ const ScenarioBuilder = () => {
       [field]: field === 'value' ? Number(value) : value
     };
     setVariables(updatedVariables);
+    setValidationErrors([]);
   };
   
   const handleRemoveVariable = (index: number) => {
@@ -93,26 +130,38 @@ const ScenarioBuilder = () => {
   };
   
   const runSimulation = () => {
-    if (!scenarioName || !hypothesis || !region || !sector || !timePeriod) {
+    const errors = validateScenario();
+    
+    if (errors.length > 0) {
+      setValidationErrors(errors);
       toast({
-        title: "Missing information",
-        description: "Please fill in all required fields before running the simulation",
+        title: "Validation Failed",
+        description: `Please fix ${errors.length} error(s) before running simulation`,
         variant: "destructive"
       });
       return;
     }
     
+    setValidationErrors([]);
     setIsRunning(true);
+    setSimulationProgress(0);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsRunning(false);
-      setIsResultReady(true);
-      toast({
-        title: "Simulation Complete",
-        description: "Scenario projections are ready for analysis"
+    // Simulate progressive loading
+    const interval = setInterval(() => {
+      setSimulationProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setIsRunning(false);
+          setIsResultReady(true);
+          toast({
+            title: "Simulation Complete",
+            description: "Scenario projections are ready for analysis"
+          });
+          return 100;
+        }
+        return prev + Math.random() * 15;
       });
-    }, 3000);
+    }, 200);
   };
   
   const handleSaveScenario = () => {
@@ -125,29 +174,33 @@ const ScenarioBuilder = () => {
       return;
     }
     
-    // Create scenario data object
-    const scenarioData: ScenarioData = {
-      id: currentScenarioId,
-      name: scenarioName,
-      hypothesis,
-      region,
-      sector,
-      timePeriod,
-      variables,
-      isResultReady,
-      timestamp: new Date()
-    };
-    
-    // Save scenario (offline for now)
-    saveScenarioOffline(scenarioData);
-    
-    // Generate new ID for next scenario
-    setCurrentScenarioId(uuidv4());
-    
-    toast({
-      title: "Scenario Saved",
-      description: `"${scenarioName}" has been added to your scenarios library`
-    });
+    try {
+      const scenarioData: ScenarioData = {
+        id: currentScenarioId,
+        name: scenarioName,
+        hypothesis,
+        region,
+        sector,
+        timePeriod,
+        variables,
+        isResultReady,
+        timestamp: new Date()
+      };
+      
+      saveScenarioOffline(scenarioData);
+      setCurrentScenarioId(uuidv4());
+      
+      toast({
+        title: "Scenario Saved",
+        description: `"${scenarioName}" has been added to your scenarios library`
+      });
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "Unable to save scenario. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleExportScenario = () => {
@@ -160,38 +213,44 @@ const ScenarioBuilder = () => {
       return;
     }
     
-    // Create export data
-    const exportData = {
-      scenarioName,
-      hypothesis,
-      region,
-      sector,
-      timePeriod,
-      variables,
-      results: {
-        impactData,
-        timelineData,
-        probabilityData,
-        causalTreeData
-      },
-      exportDate: new Date().toISOString()
-    };
-    
-    // Create downloadable file
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${scenarioName.replace(/\s+/g, '-').toLowerCase()}-scenario.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Scenario Exported",
-      description: `"${scenarioName}" has been exported as JSON`
-    });
+    try {
+      const exportData = {
+        scenarioName,
+        hypothesis,
+        region,
+        sector,
+        timePeriod,
+        variables,
+        results: {
+          impactData,
+          timelineData,
+          probabilityData,
+          causalTreeData
+        },
+        exportDate: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${scenarioName.replace(/\s+/g, '-').toLowerCase()}-scenario.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Scenario Exported",
+        description: `"${scenarioName}" has been exported as JSON`
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Unable to export scenario. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleLoadTemplate = (template: Partial<ScenarioData>) => {
@@ -201,11 +260,10 @@ const ScenarioBuilder = () => {
       }
     }
     
-    // Reset current scenario
     setCurrentScenarioId(uuidv4());
     setIsResultReady(false);
+    setValidationErrors([]);
     
-    // Load template data
     if (template.name) setScenarioName(template.name);
     if (template.hypothesis) setHypothesis(template.hypothesis);
     if (template.region) setRegion(template.region);
@@ -226,12 +284,26 @@ const ScenarioBuilder = () => {
                 <span className="text-sm text-amber-500">Offline Mode - Changes will sync when you reconnect</span>
               </div>
             )}
+            {validationErrors.length > 0 && (
+              <div className="mt-2 flex items-start">
+                <AlertCircle className="h-4 w-4 text-red-500 mr-2 mt-0.5" />
+                <div className="text-sm text-red-500">
+                  <div className="font-medium">Please fix the following issues:</div>
+                  <ul className="list-disc list-inside mt-1">
+                    {validationErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 mt-2 md:mt-0">
             <Button 
               variant="outline" 
               className="flex items-center gap-1"
               onClick={handleSaveScenario}
+              disabled={!isResultReady}
             >
               <Save className="h-4 w-4" />
               <span>Save</span>
@@ -249,9 +321,7 @@ const ScenarioBuilder = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column - Scenario configuration */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Scenario definition */}
             <ScenarioDefinition 
               scenarioName={scenarioName}
               hypothesis={hypothesis}
@@ -268,7 +338,6 @@ const ScenarioBuilder = () => {
               onTimePeriodChange={setTimePeriod}
             />
             
-            {/* Variable adjustment */}
             <VariableAdjustment 
               variables={variables}
               isRunning={isRunning}
@@ -277,16 +346,15 @@ const ScenarioBuilder = () => {
               onUpdateVariable={handleUpdateVariable}
               onRemoveVariable={handleRemoveVariable}
               onRunSimulation={runSimulation}
+              simulationProgress={simulationProgress}
             />
             
-            {/* Causal Tree */}
             <CausalTree 
               data={causalTreeData} 
               width={600} 
               height={400} 
             />
             
-            {/* Simulation results */}
             <SimulationResults 
               isResultReady={isResultReady}
               scenarioName={scenarioName}
@@ -298,7 +366,6 @@ const ScenarioBuilder = () => {
             />
           </div>
           
-          {/* Right column - Templates and saved scenarios */}
           <div>
             <SidebarTemplates 
               isResultReady={isResultReady}

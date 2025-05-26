@@ -1,4 +1,3 @@
-
 export interface Region {
   id: string;
   name: string;
@@ -86,4 +85,16 @@ export interface AnalysisResult {
   confidence: number;
   deviation: number;
   keyFactors: string[];
+}
+
+// Update the VariableAdjustmentProps interface to include simulationProgress
+export interface VariableAdjustmentProps {
+  variables: Array<{name: string, value: number}>;
+  isRunning: boolean;
+  variableOptions: VariableOption[];
+  onAddVariable: () => void;
+  onUpdateVariable: (index: number, field: 'name' | 'value', value: string | number) => void;
+  onRemoveVariable: (index: number) => void;
+  onRunSimulation: () => void;
+  simulationProgress?: number;
 }
