@@ -6,7 +6,6 @@ import {
   BarChart3,
   Calendar,
   PieChart,
-  Badge,
 } from 'lucide-react';
 import { ImpactData, TimelineData, ProbabilityData } from './types';
 import { ImpactChart } from './charts/ImpactChart';
@@ -42,11 +41,11 @@ export const SimulationResults: React.FC<SimulationResultsProps> = ({
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
         <CardTitle className="font-mono text-lg flex items-center">
           Simulation Results
-          <Badge className="ml-2 h-5 w-5 p-1" variant="outline">
+          <div className="ml-2 h-5 w-5 p-1 border border-border rounded flex items-center justify-center">
             <span className="animate-pulse h-full w-full rounded-full bg-green-500/50 flex items-center justify-center">
               <span className="h-2 w-2 rounded-full bg-green-500"></span>
             </span>
-          </Badge>
+          </div>
         </CardTitle>
         <div className="text-xs text-muted-foreground font-mono">
           Confidence: 74% • Last updated: {new Date().toLocaleTimeString()}

@@ -32,7 +32,7 @@ export const ImpactChart: React.FC<ImpactChartProps> = ({ data }) => {
   );
   
   // Custom tooltip formatter
-  const customTooltipFormatter = (value, name) => {
+  const customTooltipFormatter = (value: any, name: any) => {
     const formattedName = name === 'baseline' ? 'Baseline' : 'Your Scenario';
     return [value, formattedName];
   };
@@ -61,7 +61,7 @@ export const ImpactChart: React.FC<ImpactChartProps> = ({ data }) => {
               stroke="#6b7280" 
               fontSize={11}
               domain={[-maxAbsValue * 1.1, maxAbsValue * 1.1]}
-              tickFormatter={value => Math.abs(value)}
+              tickFormatter={(value) => Math.abs(value).toString()}
             />
             <YAxis 
               type="category" 

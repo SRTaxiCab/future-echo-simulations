@@ -8,8 +8,7 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  ReferenceLine,
-  ReferenceArea
+  ReferenceLine
 } from 'recharts';
 import { TimelineData } from '../types';
 
@@ -74,15 +73,6 @@ export const TimelineChart: React.FC<TimelineChartProps> = ({ data }) => {
               }}
               formatter={(value) => [`${value}`, '']}
               labelFormatter={(label) => `Month: ${label}`}
-            />
-            
-            {/* Show confidence area around the scenario line */}
-            <ReferenceArea 
-              y1={(dataPoint) => dataPoint.scenario * 0.9} 
-              y2={(dataPoint) => dataPoint.scenario * 1.1} 
-              strokeOpacity={0}
-              fill="#10b981" 
-              fillOpacity={0.1} 
             />
             
             {/* Add reference line for crossover point if exists */}
