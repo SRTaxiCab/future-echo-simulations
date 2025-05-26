@@ -39,25 +39,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         
         if (session?.user) {
-          // Fetch user profile data
+          // Use setTimeout to defer profile fetching and prevent deadlock
           setTimeout(async () => {
             try {
-              const { data: profile } = await supabase
+              const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('username, role, avatar_url')
                 .eq('id', session.user.id)
-                .single();
+                .maybeSingle();
               
-              if (profile) {
+              if (error) {
+                console.error('Error fetching profile:', error);
+                // If profile doesn't exist, create one
+                if (error.code === 'PGRST116') {
+                  const { error: insertError } = await supabase
+                    .from('profiles')
+                    .insert({
+                      id: session.user.id,
+                      username: session.user.email?.split('@')[0] || 'User',
+                      role: 'Analyst'
+                    });
+                  
+                  if (!insertError) {
+                    setUser({
+                      id: session.user.id,
+                      username: session.user.email?.split('@')[0] || 'User',
+                      role: 'Analyst',
+                    });
+                  }
+                }
+              } else if (profile) {
                 setUser({
                   id: session.user.id,
-                  username: profile.username || session.user.email || 'User',
+                  username: profile.username || session.user.email?.split('@')[0] || 'User',
                   role: profile.role || 'Analyst',
                   avatar: profile.avatar_url || undefined,
                 });
               }
             } catch (error) {
-              console.error('Error fetching profile:', error);
+              console.error('Error in profile fetch:', error);
             }
           }, 0);
         } else {
@@ -70,7 +90,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('Initial session check:', session?.user?.email);
-      setSession(session);
       if (!session) {
         setIsLoading(false);
       }
@@ -93,14 +112,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Signup error:', error);
+        throw error;
+      }
 
       if (data.user && !data.session) {
         toast({
           title: "Check your email",
           description: "We've sent you a confirmation link to complete your signup.",
         });
-      } else {
+      } else if (data.session) {
         toast({
           title: "Welcome to Project Looking Glass",
           description: "Account created successfully",
@@ -109,9 +131,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error: any) {
       console.error('Signup error:', error);
+      let errorMessage = "An error occurred during signup";
+      
+      if (error.message?.includes('email_provider_disabled')) {
+        errorMessage = "Email authentication is currently disabled. Please contact support.";
+      } else if (error.message?.includes('already_registered')) {
+        errorMessage = "This email is already registered. Try logging in instead.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Signup failed",
-        description: error.message || "An error occurred during signup",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -128,18 +160,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
 
-      toast({
-        title: "Authentication successful",
-        description: "Welcome to Project Looking Glass",
-      });
-      navigate('/dashboard');
+      if (data.session) {
+        toast({
+          title: "Authentication successful",
+          description: "Welcome to Project Looking Glass",
+        });
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       console.error('Login error:', error);
+      let errorMessage = "Authentication failed";
+      
+      if (error.message?.includes('email_provider_disabled')) {
+        errorMessage = "Email authentication is currently disabled. Please contact support.";
+      } else if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = "Invalid email or password. Please check your credentials.";
+      } else if (error.message?.includes('Email not confirmed')) {
+        errorMessage = "Please check your email and click the confirmation link.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Authentication failed",
-        description: error.message || "Invalid credentials",
+        title: "Login failed",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -149,7 +198,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       setUser(null);
       setSession(null);
       toast({
@@ -161,7 +212,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Logout error:', error);
       toast({
         title: "Logout failed",
-        description: error.message,
+        description: error.message || "An error occurred during logout",
         variant: "destructive"
       });
     }

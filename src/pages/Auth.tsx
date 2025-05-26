@@ -1,28 +1,51 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { EyeIcon, EyeOffIcon, ShieldAlert, UserPlus, LogIn } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, signup, isLoading } = useAuth();
+  const [activeTab, setActiveTab] = useState('login');
+  const { login, signup, isLoading, isAuthenticated } = useAuth();
+
+  // If user is already authenticated, redirect to dashboard
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      return;
+    }
     await login(email, password);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      return;
+    }
     await signup(email, password, username);
+  };
+
+  // Reset form when switching tabs
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setEmail('');
+    setPassword('');
+    setUsername('');
+    setShowPassword(false);
   };
 
   // Creates random "data stream" animation in background
@@ -81,10 +104,18 @@ const Auth = () => {
           </h1>
           <p className="text-muted-foreground text-sm">Predictive Intelligence & Timeline Simulation</p>
         </div>
+
+        {/* Information Alert */}
+        <Alert className="border-cyber/50 bg-cyber/5">
+          <AlertCircle className="h-4 w-4 text-cyber" />
+          <AlertDescription className="text-sm">
+            Use any email and password to create an account. Email confirmation may be required.
+          </AlertDescription>
+        </Alert>
         
         {/* Auth Forms */}
         <Card className="cyber-border bg-card/80 backdrop-blur-sm">
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -111,6 +142,7 @@ const Auth = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       className="bg-background/50 border-border/50"
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -124,11 +156,14 @@ const Auth = () => {
                         onChange={(e) => setPassword(e.target.value)}
                         className="bg-background/50 border-border/50 pr-10"
                         required
+                        disabled={isLoading}
+                        minLength={6}
                       />
                       <button 
                         type="button"
-                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none"
                         onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
                       >
                         {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
                       </button>
@@ -140,7 +175,7 @@ const Auth = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-cyber hover:bg-cyber-dark"
-                    disabled={isLoading}
+                    disabled={isLoading || !email || !password}
                   >
                     {isLoading ? (
                       <div className="flex items-center gap-2">
@@ -165,13 +200,14 @@ const Auth = () => {
               <form onSubmit={handleSignup}>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-username">Username</Label>
+                    <Label htmlFor="signup-username">Username (Optional)</Label>
                     <Input 
                       id="signup-username" 
                       placeholder="analyst_01"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="bg-background/50 border-border/50"
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -184,6 +220,7 @@ const Auth = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       className="bg-background/50 border-border/50"
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -192,17 +229,19 @@ const Auth = () => {
                       <Input 
                         id="signup-password" 
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Create a secure password"
+                        placeholder="Create a secure password (min 6 characters)"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="bg-background/50 border-border/50 pr-10"
                         required
+                        disabled={isLoading}
                         minLength={6}
                       />
                       <button 
                         type="button"
-                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none"
                         onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
                       >
                         {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
                       </button>
@@ -214,7 +253,7 @@ const Auth = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-cyber hover:bg-cyber-dark"
-                    disabled={isLoading}
+                    disabled={isLoading || !email || !password || password.length < 6}
                   >
                     {isLoading ? (
                       <div className="flex items-center gap-2">
