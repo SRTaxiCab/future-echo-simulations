@@ -47,22 +47,24 @@ export const ScenarioDefinition: React.FC<ScenarioDefinitionProps> = ({
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="scenario-name">Scenario Name</Label>
+              <Label htmlFor="scenario-name" className="pointer-events-none">Scenario Name</Label>
               <Input 
                 id="scenario-name" 
                 placeholder="E.g., AI Regulation Impact 2026" 
                 value={scenarioName}
                 onChange={(e) => onScenarioNameChange(e.target.value)}
+                className="relative z-10"
+                autoComplete="off"
               />
             </div>
             
             <div className="space-y-2">
-              <Label>Time Horizon</Label>
+              <Label className="pointer-events-none">Time Horizon</Label>
               <Select value={timePeriod} onValueChange={onTimePeriodChange}>
-                <SelectTrigger>
+                <SelectTrigger className="relative z-10">
                   <SelectValue placeholder="Select period" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50 bg-background border border-border">
                   {timePeriods.map(period => (
                     <SelectItem key={period.id} value={period.id}>
                       {period.name}
@@ -74,24 +76,25 @@ export const ScenarioDefinition: React.FC<ScenarioDefinitionProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="hypothesis">Hypothesis / Scenario Description</Label>
+            <Label htmlFor="hypothesis" className="pointer-events-none">Hypothesis / Scenario Description</Label>
             <Textarea 
               id="hypothesis" 
               placeholder="Describe your hypothesis or scenario in detail..." 
-              className="min-h-20"
+              className="min-h-20 relative z-10"
               value={hypothesis}
               onChange={(e) => onHypothesisChange(e.target.value)}
+              autoComplete="off"
             />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Geographic Region</Label>
+              <Label className="pointer-events-none">Geographic Region</Label>
               <Select value={region} onValueChange={onRegionChange}>
-                <SelectTrigger>
+                <SelectTrigger className="relative z-10">
                   <SelectValue placeholder="Select region" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50 bg-background border border-border">
                   {regions.map(region => (
                     <SelectItem key={region.id} value={region.id}>
                       {region.name}
@@ -102,12 +105,12 @@ export const ScenarioDefinition: React.FC<ScenarioDefinitionProps> = ({
             </div>
             
             <div className="space-y-2">
-              <Label>Primary Sector</Label>
+              <Label className="pointer-events-none">Primary Sector</Label>
               <Select value={sector} onValueChange={onSectorChange}>
-                <SelectTrigger>
+                <SelectTrigger className="relative z-10">
                   <SelectValue placeholder="Select sector" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50 bg-background border border-border">
                   {sectors.map(sector => (
                     <SelectItem key={sector.id} value={sector.id}>
                       {sector.name}
