@@ -66,7 +66,7 @@ const Auth = () => {
       return (
         <div 
           key={i}
-          className="absolute font-mono text-cyber text-xs sm:text-sm"
+          className="absolute font-mono text-cyber text-xs sm:text-sm pointer-events-none"
           style={{
             left,
             top: '-20px',
@@ -89,9 +89,9 @@ const Auth = () => {
       </div>
       
       {/* Background grid overlay */}
-      <div className="absolute inset-0 bg-cyber-grid opacity-10"></div>
+      <div className="absolute inset-0 bg-cyber-grid opacity-10 pointer-events-none"></div>
       
-      <div className="w-full max-w-md space-y-6 z-10">
+      <div className="w-full max-w-md space-y-6 z-10 relative">
         {/* Logo */}
         <div className="text-center">
           <div className="inline-block h-16 w-16 rounded-full bg-sidebar relative mb-4">
@@ -117,8 +117,8 @@ const Auth = () => {
         <Card className="cyber-border bg-card/80 backdrop-blur-sm">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsTrigger value="login" className="relative z-10">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="relative z-10">Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
@@ -133,37 +133,42 @@ const Auth = () => {
               <form onSubmit={handleLogin}>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="login-email">Email</Label>
                     <Input 
-                      id="email" 
+                      id="login-email" 
+                      name="email"
                       type="email"
                       placeholder="analyst@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="bg-background/50 border-border/50"
+                      className="bg-background/50 border-border/50 relative z-10"
                       required
                       disabled={isLoading}
+                      autoComplete="email"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="login-password">Password</Label>
                     <div className="relative">
                       <Input 
-                        id="password" 
+                        id="login-password" 
+                        name="password"
                         type={showPassword ? 'text' : 'password'}
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="bg-background/50 border-border/50 pr-10"
+                        className="bg-background/50 border-border/50 pr-10 relative z-10"
                         required
                         disabled={isLoading}
                         minLength={6}
+                        autoComplete="current-password"
                       />
                       <button 
                         type="button"
-                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none"
+                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none z-20"
                         onClick={() => setShowPassword(!showPassword)}
                         disabled={isLoading}
+                        tabIndex={-1}
                       >
                         {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
                       </button>
@@ -174,7 +179,7 @@ const Auth = () => {
                 <CardFooter>
                   <Button 
                     type="submit" 
-                    className="w-full bg-cyber hover:bg-cyber-dark"
+                    className="w-full bg-cyber hover:bg-cyber-dark relative z-10"
                     disabled={isLoading || !email || !password}
                   >
                     {isLoading ? (
@@ -203,24 +208,28 @@ const Auth = () => {
                     <Label htmlFor="signup-username">Username (Optional)</Label>
                     <Input 
                       id="signup-username" 
+                      name="username"
                       placeholder="analyst_01"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="bg-background/50 border-border/50"
+                      className="bg-background/50 border-border/50 relative z-10"
                       disabled={isLoading}
+                      autoComplete="username"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input 
                       id="signup-email" 
+                      name="email"
                       type="email"
                       placeholder="analyst@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="bg-background/50 border-border/50"
+                      className="bg-background/50 border-border/50 relative z-10"
                       required
                       disabled={isLoading}
+                      autoComplete="email"
                     />
                   </div>
                   <div className="space-y-2">
@@ -228,20 +237,23 @@ const Auth = () => {
                     <div className="relative">
                       <Input 
                         id="signup-password" 
+                        name="password"
                         type={showPassword ? 'text' : 'password'}
                         placeholder="Create a secure password (min 6 characters)"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="bg-background/50 border-border/50 pr-10"
+                        className="bg-background/50 border-border/50 pr-10 relative z-10"
                         required
                         disabled={isLoading}
                         minLength={6}
+                        autoComplete="new-password"
                       />
                       <button 
                         type="button"
-                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none"
+                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none z-20"
                         onClick={() => setShowPassword(!showPassword)}
                         disabled={isLoading}
+                        tabIndex={-1}
                       >
                         {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
                       </button>
@@ -252,7 +264,7 @@ const Auth = () => {
                 <CardFooter>
                   <Button 
                     type="submit" 
-                    className="w-full bg-cyber hover:bg-cyber-dark"
+                    className="w-full bg-cyber hover:bg-cyber-dark relative z-10"
                     disabled={isLoading || !email || !password || password.length < 6}
                   >
                     {isLoading ? (
