@@ -36,15 +36,58 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          classification_clearance: Database["public"]["Enums"]["classification_level"]
+          granted_at: string
+          granted_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          classification_clearance?: Database["public"]["Enums"]["classification_level"]
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          classification_clearance?: Database["public"]["Enums"]["classification_level"]
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_clearance: {
+        Args: { user_uuid: string }
+        Returns: Database["public"]["Enums"]["classification_level"]
+      }
+      get_user_role: {
+        Args: { user_uuid: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      is_admin: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      classification_level:
+        | "unclassified"
+        | "confidential"
+        | "secret"
+        | "top_secret"
+      user_role: "admin" | "analyst" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -159,6 +202,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      classification_level: [
+        "unclassified",
+        "confidential",
+        "secret",
+        "top_secret",
+      ],
+      user_role: ["admin", "analyst", "viewer"],
+    },
   },
 } as const

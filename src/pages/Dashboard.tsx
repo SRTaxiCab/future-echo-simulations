@@ -5,7 +5,10 @@ import { AlertCard } from '@/components/AlertCard';
 import { EventCard, Event } from '@/components/EventCard';
 import { StatusCard } from '@/components/StatusCard';
 import { TimelineChart } from '@/components/TimelineChart';
+import { ClassifiedContent } from '@/components/ClassifiedContent';
+import { AdminPanel } from '@/components/AdminPanel';
 import { Card } from '@/components/ui/card';
+import { useUserRole } from '@/hooks/useUserRole';
 import { 
   Activity, 
   TrendingUp, 
@@ -46,6 +49,8 @@ const events: Event[] = [
 ];
 
 const Dashboard = () => {
+  const { isAdmin } = useUserRole();
+
   return (
     <AppLayout>
       <div className="p-6">
@@ -122,7 +127,7 @@ const Dashboard = () => {
               />
             </div>
             
-            {/* Additional content can be added here */}
+            {/* Classified Analyst Notes */}
             <div className="relative">
               <div className="absolute -top-1 -right-1 z-10">
                 <span className="secret-stamp">Classified</span>
@@ -130,11 +135,22 @@ const Dashboard = () => {
               <Card className="neural-border bg-muted/20 p-4">
                 <h3 className="font-mono text-neural mb-2">Analyst Notes</h3>
                 <div className="text-sm space-y-2">
-                  <p>Timeline simulations suggest <span className="redacted">energy crisis</span> likelihood increasing by Q3 2026. Recommend preparing countermeasures.</p>
-                  <p>Data anomaly in <span className="redacted">social patterns</span> requires further investigation. Possible connection to <span className="redacted">Project Delta</span>.</p>
+                  <ClassifiedContent classificationLevel="secret">
+                    <p>Timeline simulations suggest coordinated cyber warfare campaign targeting critical infrastructure by Q3 2026. Recommend immediate activation of defensive protocols and international coalition briefing.</p>
+                    <p>Data correlation indicates state-actor involvement in recent financial market anomalies. Pattern analysis suggests preparation phase for larger economic disruption event. Probability: 73%.</p>
+                    <p>Intercepted communications point to Project Delta acceleration. Timeline moved up by 6 months. Countermeasures must be deployed within 30 days to prevent cascade failure scenario.</p>
+                  </ClassifiedContent>
                 </div>
               </Card>
             </div>
+
+            {/* Admin Panel - only visible to administrators */}
+            {isAdmin && (
+              <div>
+                <h2 className="text-lg font-mono mb-4">Administrative Controls</h2>
+                <AdminPanel />
+              </div>
+            )}
           </div>
         </div>
       </div>

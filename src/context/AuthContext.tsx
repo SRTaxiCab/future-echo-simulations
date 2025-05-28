@@ -66,6 +66,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                       username: session.user.email?.split('@')[0] || 'User',
                       role: 'Analyst',
                     });
+                    
+                    // Create default user_role entry
+                    await supabase
+                      .from('user_roles')
+                      .insert({
+                        user_id: session.user.id,
+                        role: 'analyst',
+                        classification_clearance: 'unclassified'
+                      });
                   }
                 }
               } else if (profile) {
