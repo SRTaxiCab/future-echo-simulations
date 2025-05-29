@@ -31,8 +31,25 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
     }
   });
 
+  const handleInputChange = (field: keyof SetupConfig, value: string) => {
+    setConfig(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSystemSettingChange = (field: string, value: any) => {
+    setConfig(prev => ({
+      ...prev,
+      systemSettings: {
+        ...prev.systemSettings!,
+        [field]: value
+      }
+    }));
+  };
+
   const handleRunSetup = async () => {
-    if (!config.adminEmail || !config.adminPassword) {
+    if (!config.adminEmail?.trim() || !config.adminPassword?.trim()) {
       toast({
         title: "Missing Information",
         description: "Please provide both email and password for the admin account.",
@@ -58,7 +75,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
 
   const canProceedToNextStep = () => {
     if (currentStep === 1) {
-      return config.adminEmail.trim() !== '' && config.adminPassword.trim() !== '';
+      return config.adminEmail?.trim() !== '' && config.adminPassword?.trim() !== '';
     }
     return true;
   };
@@ -105,11 +122,12 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
               </Label>
               <Input
                 id="adminEmail"
+                name="adminEmail"
                 type="email"
-                value={config.adminEmail}
-                onChange={(e) => setConfig({ ...config, adminEmail: e.target.value })}
+                value={config.adminEmail || ''}
+                onChange={(e) => handleInputChange('adminEmail', e.target.value)}
                 placeholder="admin@organization.com"
-                className="font-mono"
+                className="font-mono bg-background border-input"
                 required
                 autoComplete="email"
                 autoFocus
@@ -122,11 +140,12 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
               <div className="relative">
                 <Input
                   id="adminPassword"
+                  name="adminPassword"
                   type={showPassword ? "text" : "password"}
-                  value={config.adminPassword}
-                  onChange={(e) => setConfig({ ...config, adminPassword: e.target.value })}
+                  value={config.adminPassword || ''}
+                  onChange={(e) => handleInputChange('adminPassword', e.target.value)}
                   placeholder="Enter secure password"
-                  className="font-mono pr-10"
+                  className="font-mono pr-10 bg-background border-input"
                   required
                   autoComplete="new-password"
                 />
@@ -148,10 +167,12 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
               </Label>
               <Input
                 id="orgName"
+                name="orgName"
                 type="text"
                 value={config.organizationName || ''}
-                onChange={(e) => setConfig({ ...config, organizationName: e.target.value })}
+                onChange={(e) => handleInputChange('organizationName', e.target.value)}
                 placeholder="Your Organization"
+                className="bg-background border-input"
                 autoComplete="organization"
               />
             </div>
@@ -168,12 +189,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
               </div>
               <Switch
                 checked={config.systemSettings?.enableEmailVerification || false}
-                onCheckedChange={(checked) => 
-                  setConfig({
-                    ...config,
-                    systemSettings: { ...config.systemSettings!, enableEmailVerification: checked }
-                  })
-                }
+                onCheckedChange={(checked) => handleSystemSettingChange('enableEmailVerification', checked)}
               />
             </div>
             <div className="space-y-2">
@@ -182,14 +198,13 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
               </Label>
               <Input
                 id="sessionTimeout"
+                name="sessionTimeout"
                 type="number"
                 value={config.systemSettings?.sessionTimeout || 480}
-                onChange={(e) => setConfig({
-                  ...config,
-                  systemSettings: { ...config.systemSettings!, sessionTimeout: parseInt(e.target.value) || 480 }
-                })}
+                onChange={(e) => handleSystemSettingChange('sessionTimeout', parseInt(e.target.value) || 480)}
                 min="30"
                 max="1440"
+                className="bg-background border-input"
               />
             </div>
           </div>
@@ -204,18 +219,12 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
               </Label>
               <Select
                 value={config.systemSettings?.defaultClassificationLevel || 'unclassified'}
-                onValueChange={(value: any) => setConfig({
-                  ...config,
-                  systemSettings: { 
-                    ...config.systemSettings!, 
-                    defaultClassificationLevel: value 
-                  }
-                })}
+                onValueChange={(value: any) => handleSystemSettingChange('defaultClassificationLevel', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-background border-input">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border-input">
                   <SelectItem value="unclassified">Unclassified</SelectItem>
                   <SelectItem value="confidential">Confidential</SelectItem>
                   <SelectItem value="secret">Secret</SelectItem>
@@ -289,6 +298,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
               variant="outline"
               onClick={handlePreviousStep}
               disabled={currentStep === 1}
+              type="button"
             >
               Previous
             </Button>
@@ -298,6 +308,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
                 onClick={handleNextStep}
                 className="bg-cyber hover:bg-cyber/80 text-black"
                 disabled={!canProceedToNextStep()}
+                type="button"
               >
                 Next
               </Button>
@@ -306,6 +317,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
                 onClick={handleRunSetup}
                 disabled={isLoading || !canProceedToNextStep()}
                 className="bg-cyber hover:bg-cyber/80 text-black"
+                type="button"
               >
                 {isLoading ? 'Setting up...' : 'Complete Setup'}
               </Button>

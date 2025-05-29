@@ -24,22 +24,19 @@ export class SetupScript {
     try {
       console.log('Starting Project Looking Glass setup...');
       
-      // Step 1: Create admin user
-      const adminUser = await this.createAdminUser(config.adminEmail, config.adminPassword);
-      if (!adminUser) {
-        throw new Error('Failed to create admin user');
+      // Step 1: Check if user already exists and sign in, or create new user
+      const user = await this.createOrSignInAdminUser(config.adminEmail, config.adminPassword);
+      if (!user) {
+        throw new Error('Failed to create or sign in admin user');
       }
 
-      // Step 2: Grant admin privileges
-      await this.grantAdminPrivileges(adminUser.id);
-
-      // Step 3: Initialize system settings
+      // Step 2: Initialize system settings
       await this.initializeSystemSettings(config.systemSettings);
 
-      // Step 4: Create sample data (optional)
+      // Step 3: Create sample data (optional)
       await this.createSampleData();
 
-      // Step 5: Mark setup as complete
+      // Step 4: Mark setup as complete
       await this.markSetupComplete();
 
       this.toast({
@@ -61,44 +58,57 @@ export class SetupScript {
     }
   }
 
-  private async createAdminUser(email: string, password: string) {
-    const { data, error } = await supabase.auth.signUp({
+  private async createOrSignInAdminUser(email: string, password: string) {
+    // First try to sign in with existing credentials
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
-      password,
-      options: {
-        data: {
-          username: 'Administrator',
-          role: 'Administrator'
-        }
-      }
+      password
     });
 
-    if (error) {
-      throw new Error(`Failed to create admin user: ${error.message}`);
+    if (signInData.user) {
+      console.log('Signed in with existing admin user');
+      return signInData.user;
     }
 
-    return data.user;
-  }
-
-  private async grantAdminPrivileges(userId: string) {
-    const { error } = await supabase
-      .from('user_roles')
-      .upsert({
-        user_id: userId,
-        role: 'admin',
-        classification_clearance: 'top_secret',
-        granted_by: userId // Self-granted for initial admin
+    // If sign in failed, try to create new user
+    if (signInError && signInError.message !== 'Invalid login credentials') {
+      console.log('Attempting to create new admin user...');
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: 'Administrator',
+            role: 'Administrator'
+          }
+        }
       });
 
-    if (error) {
-      throw new Error(`Failed to grant admin privileges: ${error.message}`);
+      if (signUpError) {
+        // If user already exists, try signing in again
+        if (signUpError.message.includes('User already registered')) {
+          const { data: retrySignIn, error: retryError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+          
+          if (retryError) {
+            throw new Error(`Failed to sign in: ${retryError.message}`);
+          }
+          
+          return retrySignIn.user;
+        }
+        throw new Error(`Failed to create admin user: ${signUpError.message}`);
+      }
+
+      return signUpData.user;
     }
 
-    console.log('Admin privileges granted successfully');
+    throw new Error('Failed to authenticate admin user');
   }
 
   private async initializeSystemSettings(settings?: SetupConfig['systemSettings']) {
-    // Create system settings table entry (if needed)
+    // Create system settings
     const defaultSettings = {
       defaultClassificationLevel: settings?.defaultClassificationLevel || 'unclassified',
       enableEmailVerification: settings?.enableEmailVerification ?? false,
@@ -107,14 +117,14 @@ export class SetupScript {
       setupDate: new Date().toISOString()
     };
 
-    // Store in localStorage for now (could be moved to database later)
+    // Store in localStorage for now
     localStorage.setItem('lookingGlassSettings', JSON.stringify(defaultSettings));
     
     console.log('System settings initialized:', defaultSettings);
   }
 
   private async createSampleData() {
-    // This could create sample scenarios, templates, etc.
+    // Create sample templates
     const sampleTemplates = [
       {
         name: 'Technology Disruption Analysis',
@@ -147,20 +157,10 @@ export class SetupScript {
 
   async validateSetup(): Promise<boolean> {
     try {
-      // Check if admin user exists
+      // Check if user is signed in
       const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        return false;
-      }
-
-      // Check if user has admin role
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role, classification_clearance')
-        .eq('user_id', session.session.user.id)
-        .maybeSingle();
-
-      return userRole?.role === 'admin' && SetupScript.isSetupComplete();
+      
+      return session.session !== null && SetupScript.isSetupComplete();
     } catch (error) {
       console.error('Setup validation failed:', error);
       return false;
