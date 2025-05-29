@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -30,18 +29,23 @@ export class SetupScript {
         throw new Error('Failed to create or sign in admin user');
       }
 
+      console.log('Admin user authenticated successfully');
+
       // Step 2: Initialize system settings
       await this.initializeSystemSettings(config.systemSettings);
 
       // Step 3: Create sample data (optional)
       await this.createSampleData();
 
-      // Step 4: Mark setup as complete
+      // Step 4: Set admin role with top secret clearance
+      await this.setAdminRole(user.id);
+
+      // Step 5: Mark setup as complete
       await this.markSetupComplete();
 
       this.toast({
         title: "Setup Complete",
-        description: "Project Looking Glass has been successfully initialized.",
+        description: "Project Looking Glass has been successfully initialized with administrator privileges.",
       });
 
       console.log('Setup completed successfully!');
@@ -59,20 +63,21 @@ export class SetupScript {
   }
 
   private async createOrSignInAdminUser(email: string, password: string) {
-    // First try to sign in with existing credentials
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    try {
+      // First try to sign in with existing credentials
+      console.log('Attempting to sign in with existing credentials...');
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    if (signInData.user) {
-      console.log('Signed in with existing admin user');
-      return signInData.user;
-    }
+      if (signInData.user && signInData.session) {
+        console.log('Successfully signed in with existing admin user');
+        return signInData.user;
+      }
 
-    // If sign in failed, try to create new user
-    if (signInError && signInError.message !== 'Invalid login credentials') {
-      console.log('Attempting to create new admin user...');
+      // If sign in failed, try to create new user
+      console.log('Sign in failed, attempting to create new admin user...');
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -85,8 +90,11 @@ export class SetupScript {
       });
 
       if (signUpError) {
-        // If user already exists, try signing in again
+        // If user already exists, try signing in again with a delay
         if (signUpError.message.includes('User already registered')) {
+          console.log('User already exists, retrying sign in...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
           const { data: retrySignIn, error: retryError } = await supabase.auth.signInWithPassword({
             email,
             password
@@ -101,10 +109,36 @@ export class SetupScript {
         throw new Error(`Failed to create admin user: ${signUpError.message}`);
       }
 
-      return signUpData.user;
-    }
+      if (signUpData.user) {
+        console.log('Successfully created new admin user');
+        return signUpData.user;
+      }
 
-    throw new Error('Failed to authenticate admin user');
+      throw new Error('Failed to create or authenticate admin user');
+    } catch (error) {
+      console.error('Error in createOrSignInAdminUser:', error);
+      throw error;
+    }
+  }
+
+  private async setAdminRole(userId: string) {
+    try {
+      // Create admin role with top secret clearance in localStorage for now
+      const adminRole = {
+        id: userId,
+        user_id: userId,
+        role: 'admin',
+        classification_clearance: 'top_secret',
+        granted_by: userId,
+        granted_at: new Date().toISOString()
+      };
+
+      localStorage.setItem('adminRole', JSON.stringify(adminRole));
+      console.log('Admin role with top secret clearance set successfully');
+    } catch (error) {
+      console.error('Error setting admin role:', error);
+      throw new Error('Failed to set administrator privileges');
+    }
   }
 
   private async initializeSystemSettings(settings?: SetupConfig['systemSettings']) {
@@ -145,6 +179,7 @@ export class SetupScript {
   private async markSetupComplete() {
     localStorage.setItem('setupCompleted', 'true');
     localStorage.setItem('setupDate', new Date().toISOString());
+    console.log('Setup marked as complete');
   }
 
   static isSetupComplete(): boolean {
