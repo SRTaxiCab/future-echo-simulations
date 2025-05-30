@@ -26,7 +26,42 @@ export const useUserRole = () => {
 
     const fetchUserRole = async () => {
       try {
-        // First check if user has a role entry
+        // First check localStorage for admin role (set during setup)
+        const adminRoleString = localStorage.getItem('adminRole');
+        const userRoleString = localStorage.getItem('userRole');
+        const isAdminStored = localStorage.getItem('isAdmin') === 'true';
+        
+        if (adminRoleString && session.user.id) {
+          try {
+            const adminRole = JSON.parse(adminRoleString);
+            if (adminRole.user_id === session.user.id) {
+              console.log('Found admin role in localStorage:', adminRole);
+              setUserRole(adminRole);
+              setIsAdmin(true);
+              setIsLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing admin role from localStorage:', e);
+          }
+        }
+
+        if (userRoleString && session.user.id) {
+          try {
+            const storedRole = JSON.parse(userRoleString);
+            if (storedRole.user_id === session.user.id) {
+              console.log('Found user role in localStorage:', storedRole);
+              setUserRole(storedRole);
+              setIsAdmin(storedRole.role === 'admin' || isAdminStored);
+              setIsLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing user role from localStorage:', e);
+          }
+        }
+
+        // If no localStorage role found, check database
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('*')
@@ -39,7 +74,7 @@ export const useUserRole = () => {
           return;
         }
 
-        // If no role exists, create a default one
+        // If no role exists in database, create a default one
         if (!roleData) {
           const { data: newRole, error: insertError } = await supabase
             .from('user_roles')

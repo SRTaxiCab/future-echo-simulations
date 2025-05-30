@@ -31,24 +31,24 @@ export class SetupScript {
 
       console.log('Admin user authenticated successfully');
 
-      // Step 2: Initialize system settings
+      // Step 2: Set admin role with top secret clearance FIRST
+      await this.setAdminRole(user.id);
+
+      // Step 3: Initialize system settings
       await this.initializeSystemSettings(config.systemSettings);
 
-      // Step 3: Create sample data (optional)
+      // Step 4: Create sample data (optional)
       await this.createSampleData();
-
-      // Step 4: Set admin role with top secret clearance
-      await this.setAdminRole(user.id);
 
       // Step 5: Mark setup as complete
       await this.markSetupComplete();
 
       this.toast({
         title: "Setup Complete",
-        description: "Project Looking Glass has been successfully initialized with administrator privileges.",
+        description: "Project Looking Glass has been successfully initialized. You now have Administrator privileges with Top Secret clearance.",
       });
 
-      console.log('Setup completed successfully!');
+      console.log('Setup completed successfully! Admin role with Top Secret clearance granted.');
       return true;
 
     } catch (error) {
@@ -123,18 +123,29 @@ export class SetupScript {
 
   private async setAdminRole(userId: string) {
     try {
-      // Create admin role with top secret clearance in localStorage for now
+      // Create admin role with top secret clearance
       const adminRole = {
         id: userId,
         user_id: userId,
         role: 'admin',
         classification_clearance: 'top_secret',
         granted_by: userId,
-        granted_at: new Date().toISOString()
+        granted_at: new Date().toISOString(),
+        isAdmin: true
       };
 
       localStorage.setItem('adminRole', JSON.stringify(adminRole));
-      console.log('Admin role with top secret clearance set successfully');
+      localStorage.setItem('userRole', JSON.stringify(adminRole));
+      localStorage.setItem('isAdmin', 'true');
+      localStorage.setItem('classificationClearance', 'top_secret');
+      
+      console.log('Admin role with Top Secret clearance set successfully:', adminRole);
+      
+      this.toast({
+        title: "Administrator Privileges Granted",
+        description: "You have been granted Administrator role with Top Secret clearance.",
+      });
+      
     } catch (error) {
       console.error('Error setting admin role:', error);
       throw new Error('Failed to set administrator privileges');
