@@ -13,9 +13,9 @@ export const LazyAuth = lazy(() => import('../pages/Auth'));
 export const LazySetup = lazy(() => import('../pages/Setup'));
 export const LazyNotFound = lazy(() => import('../pages/NotFound'));
 
-// Lazy load heavy components
-export const LazyAdminPanel = lazy(() => import('./AdminPanel'));
-export const LazySetupWizard = lazy(() => import('./SetupWizard'));
+// Lazy load heavy components - fix for named exports
+export const LazyAdminPanel = lazy(() => import('./AdminPanel').then(module => ({ default: module.AdminPanel })));
+export const LazySetupWizard = lazy(() => import('./SetupWizard').then(module => ({ default: module.SetupWizard })));
 
 // Performance-optimized lazy loading wrapper with retry logic
 export const createLazyComponent = <T extends ComponentType<any>>(
