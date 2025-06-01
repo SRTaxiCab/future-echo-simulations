@@ -26,42 +26,7 @@ export const useUserRole = () => {
 
     const fetchUserRole = async () => {
       try {
-        // First check localStorage for admin role (set during setup)
-        const adminRoleString = localStorage.getItem('adminRole');
-        const userRoleString = localStorage.getItem('userRole');
-        const isAdminStored = localStorage.getItem('isAdmin') === 'true';
-        
-        if (adminRoleString && session.user.id) {
-          try {
-            const adminRole = JSON.parse(adminRoleString);
-            if (adminRole.user_id === session.user.id) {
-              console.log('Found admin role in localStorage:', adminRole);
-              setUserRole(adminRole);
-              setIsAdmin(true);
-              setIsLoading(false);
-              return;
-            }
-          } catch (e) {
-            console.error('Error parsing admin role from localStorage:', e);
-          }
-        }
-
-        if (userRoleString && session.user.id) {
-          try {
-            const storedRole = JSON.parse(userRoleString);
-            if (storedRole.user_id === session.user.id) {
-              console.log('Found user role in localStorage:', storedRole);
-              setUserRole(storedRole);
-              setIsAdmin(storedRole.role === 'admin' || isAdminStored);
-              setIsLoading(false);
-              return;
-            }
-          } catch (e) {
-            console.error('Error parsing user role from localStorage:', e);
-          }
-        }
-
-        // If no localStorage role found, check database
+        // Try to fetch from database first
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('*')
@@ -74,34 +39,98 @@ export const useUserRole = () => {
           return;
         }
 
-        // If no role exists in database, create a default one
-        if (!roleData) {
-          const { data: newRole, error: insertError } = await supabase
-            .from('user_roles')
-            .insert({
-              user_id: session.user.id,
-              role: 'analyst',
-              classification_clearance: 'unclassified'
-            })
-            .select()
-            .single();
-
-          if (insertError) {
-            console.error('Error creating user role:', insertError);
-            setIsLoading(false);
-            return;
-          }
-
-          setUserRole(newRole);
-          setIsAdmin(newRole.role === 'admin');
-        } else {
+        if (roleData) {
           setUserRole(roleData);
           setIsAdmin(roleData.role === 'admin');
+          setIsLoading(false);
+          return;
         }
+
+        // Fallback: Check localStorage for setup data (backwards compatibility)
+        const adminRoleString = localStorage.getItem('adminRole');
+        const userRoleString = localStorage.getItem('userRole');
+        
+        if (adminRoleString && session.user.id) {
+          try {
+            const adminRole = JSON.parse(adminRoleString);
+            if (adminRole.user_id === session.user.id) {
+              // Migrate localStorage role to database
+              await migrateRoleToDatabase(adminRole);
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing admin role from localStorage:', e);
+          }
+        }
+
+        if (userRoleString && session.user.id) {
+          try {
+            const storedRole = JSON.parse(userRoleString);
+            if (storedRole.user_id === session.user.id) {
+              // Migrate localStorage role to database
+              await migrateRoleToDatabase(storedRole);
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing user role from localStorage:', e);
+          }
+        }
+
+        // If no role exists anywhere, create a default one
+        const { data: newRole, error: insertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: session.user.id,
+            role: 'analyst',
+            classification_clearance: 'unclassified'
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating user role:', insertError);
+          setIsLoading(false);
+          return;
+        }
+
+        setUserRole(newRole);
+        setIsAdmin(newRole.role === 'admin');
       } catch (error) {
         console.error('Error in fetchUserRole:', error);
       } finally {
         setIsLoading(false);
+      }
+    };
+
+    const migrateRoleToDatabase = async (localRole: any) => {
+      try {
+        const { data: newRole, error: insertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: localRole.user_id,
+            role: localRole.role,
+            classification_clearance: localRole.classification_clearance,
+            granted_by: localRole.granted_by
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error migrating role to database:', insertError);
+          return;
+        }
+
+        setUserRole(newRole);
+        setIsAdmin(newRole.role === 'admin');
+        setIsLoading(false);
+
+        // Clean up localStorage after successful migration
+        localStorage.removeItem('adminRole');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('classificationClearance');
+      } catch (error) {
+        console.error('Error in migrateRoleToDatabase:', error);
       }
     };
 
@@ -137,6 +166,20 @@ export const useUserRole = () => {
     if (error) {
       throw error;
     }
+
+    // Log the admin action
+    await supabase
+      .from('audit_logs')
+      .insert({
+        user_id: session.user.id,
+        action: 'grant_access',
+        resource_type: 'user_role',
+        resource_id: targetUserId,
+        details: { 
+          granted_role: newRole, 
+          granted_clearance: clearanceLevel 
+        }
+      });
 
     return data;
   };

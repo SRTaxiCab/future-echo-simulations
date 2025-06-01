@@ -5,7 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
-import { SetupScript } from "@/utils/setupScript";
+import { ProductionSetupScript } from "@/utils/productionSetupScript";
+import { useEffect, useState } from "react";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
@@ -21,8 +22,35 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Check if setup is completed
-  const isSetupComplete = SetupScript.isSetupComplete();
+  const [isSetupComplete, setIsSetupComplete] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSetupStatus = async () => {
+      try {
+        const setupComplete = await ProductionSetupScript.isSetupComplete();
+        setIsSetupComplete(setupComplete);
+      } catch (error) {
+        console.error('Error checking setup status:', error);
+        setIsSetupComplete(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSetupStatus();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-cyber text-lg font-mono mb-4">Loading...</div>
+          <div className="w-8 h-8 border-2 border-cyber border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

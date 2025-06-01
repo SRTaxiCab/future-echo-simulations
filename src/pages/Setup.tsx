@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SetupWizard } from '@/components/SetupWizard';
-import { SetupScript } from '@/utils/setupScript';
+import { ProductionSetupScript } from '@/utils/productionSetupScript';
 
 const Setup = () => {
   const navigate = useNavigate();
@@ -12,16 +12,11 @@ const Setup = () => {
   useEffect(() => {
     const checkSetupStatus = async () => {
       try {
-        console.log('Checking setup status...');
-        
-        // Check if setup is already completed
-        const setupComplete = SetupScript.isSetupComplete();
-        console.log('Setup complete:', setupComplete);
+        // Check if setup is already completed using production method
+        const setupComplete = await ProductionSetupScript.isSetupComplete();
         
         if (setupComplete) {
-          console.log('Setup already complete, redirecting to dashboard');
           setIsSetupNeeded(false);
-          // Use setTimeout to ensure state updates before navigation
           setTimeout(() => {
             navigate('/dashboard', { replace: true });
           }, 100);
@@ -38,10 +33,9 @@ const Setup = () => {
     };
 
     checkSetupStatus();
-  }, []); // Empty dependency array to run only once
+  }, [navigate]);
 
   const handleSetupComplete = () => {
-    console.log('Setup completed, redirecting to dashboard');
     setIsSetupNeeded(false);
     setIsLoading(false);
     navigate('/dashboard', { replace: true });
@@ -51,7 +45,7 @@ const Setup = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="text-cyber text-lg font-mono mb-4">Initializing...</div>
+          <div className="text-cyber text-lg font-mono mb-4">Initializing Production Environment...</div>
           <div className="w-8 h-8 border-2 border-cyber border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
