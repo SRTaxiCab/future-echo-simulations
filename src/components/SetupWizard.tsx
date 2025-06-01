@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { SetupScript, SetupConfig } from '@/utils/setupScript';
 import { Eye, EyeOff, Settings, User, Shield } from 'lucide-react';
+import { LoadingFallback } from './LoadingFallback';
 
 interface SetupWizardProps {
   onSetupComplete: () => void;
@@ -248,83 +248,85 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl cyber-border bg-muted/5">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-mono text-cyber">
-            Project Looking Glass Setup
-          </CardTitle>
-          <CardDescription>
-            Initialize your predictive intelligence system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Progress Steps */}
-          <div className="flex justify-between mb-8">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className={`
-                  flex items-center justify-center w-10 h-10 rounded-full border-2
-                  ${currentStep >= step.id 
-                    ? 'bg-cyber border-cyber text-black' 
-                    : 'border-muted-foreground text-muted-foreground'
-                  }
-                `}>
-                  {step.icon}
+    <Suspense fallback={<LoadingFallback minimal />}>
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl cyber-border bg-muted/5">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-mono text-cyber">
+              Project Looking Glass Setup
+            </CardTitle>
+            <CardDescription>
+              Initialize your predictive intelligence system
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Progress Steps */}
+            <div className="flex justify-between mb-8">
+              {steps.map((step, index) => (
+                <div key={step.id} className="flex items-center">
+                  <div className={`
+                    flex items-center justify-center w-10 h-10 rounded-full border-2
+                    ${currentStep >= step.id 
+                      ? 'bg-cyber border-cyber text-black' 
+                      : 'border-muted-foreground text-muted-foreground'
+                    }
+                  `}>
+                    {step.icon}
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div className={`w-16 h-0.5 ml-2 ${
+                      currentStep > step.id ? 'bg-cyber' : 'bg-muted-foreground'
+                    }`} />
+                  )}
                 </div>
-                {index < steps.length - 1 && (
-                  <div className={`w-16 h-0.5 ml-2 ${
-                    currentStep > step.id ? 'bg-cyber' : 'bg-muted-foreground'
-                  }`} />
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {/* Current Step Content */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-2">
-              {steps[currentStep - 1].title}
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              {steps[currentStep - 1].description}
-            </p>
-            {renderStep()}
-          </div>
+            {/* Current Step Content */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-2">
+                {steps[currentStep - 1].title}
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                {steps[currentStep - 1].description}
+              </p>
+              {renderStep()}
+            </div>
 
-          {/* Navigation */}
-          <div className="flex justify-between">
-            <Button
-              variant="outline"
-              onClick={handlePreviousStep}
-              disabled={currentStep === 1}
-              type="button"
-            >
-              Previous
-            </Button>
-            
-            {currentStep < steps.length ? (
+            {/* Navigation */}
+            <div className="flex justify-between">
               <Button
-                onClick={handleNextStep}
-                className="bg-cyber hover:bg-cyber/80 text-black"
-                disabled={!canProceedToNextStep()}
+                variant="outline"
+                onClick={handlePreviousStep}
+                disabled={currentStep === 1}
                 type="button"
               >
-                Next
+                Previous
               </Button>
-            ) : (
-              <Button
-                onClick={handleRunSetup}
-                disabled={isLoading || !canProceedToNextStep()}
-                className="bg-cyber hover:bg-cyber/80 text-black"
-                type="button"
-              >
-                {isLoading ? 'Setting up...' : 'Complete Setup'}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              
+              {currentStep < steps.length ? (
+                <Button
+                  onClick={handleNextStep}
+                  className="bg-cyber hover:bg-cyber/80 text-black"
+                  disabled={!canProceedToNextStep()}
+                  type="button"
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleRunSetup}
+                  disabled={isLoading || !canProceedToNextStep()}
+                  className="bg-cyber hover:bg-cyber/80 text-black"
+                  type="button"
+                >
+                  {isLoading ? 'Setting up...' : 'Complete Setup'}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </Suspense>
   );
 };
