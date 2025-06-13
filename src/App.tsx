@@ -112,50 +112,66 @@ const App = () => {
             <AuthProvider>
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
-                  {/* Setup route - only accessible if setup is not complete */}
-                  {!isSetupComplete && (
-                    <Route path="/setup" element={<LazySetup />} />
-                  )}
+                  {/* Setup route - always available but conditionally redirects */}
+                  <Route path="/setup" element={
+                    isSetupComplete ? <Navigate to="/dashboard" replace /> : <LazySetup />
+                  } />
                   
-                  {/* Redirect to setup if not completed */}
-                  {!isSetupComplete && (
-                    <Route path="*" element={<Navigate to="/setup" replace />} />
-                  )}
+                  {/* Main routes - available when setup is complete */}
+                  <Route path="/" element={
+                    isSetupComplete ? <Index /> : <Navigate to="/setup" replace />
+                  } />
                   
-                  {/* Normal routes - only accessible if setup is complete */}
-                  {isSetupComplete && (
-                    <>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/login" element={<LazyLogin />} />
-                      <Route path="/auth" element={<LazyAuth />} />
-                      <Route path="/dashboard" element={
-                        <ProtectedRoute>
-                          <LazyDashboard />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/timeline" element={
-                        <ProtectedRoute>
-                          <LazyTimelineViewer />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/scenarios" element={
-                        <ProtectedRoute>
-                          <LazyScenarioBuilder />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/data-feeds" element={
-                        <ProtectedRoute>
-                          <LazyDataFeeds />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/settings" element={
-                        <ProtectedRoute>
-                          <LazySettings />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="*" element={<LazyNotFound />} />
-                    </>
-                  )}
+                  <Route path="/login" element={
+                    isSetupComplete ? <LazyLogin /> : <Navigate to="/setup" replace />
+                  } />
+                  
+                  <Route path="/auth" element={
+                    isSetupComplete ? <LazyAuth /> : <Navigate to="/setup" replace />
+                  } />
+                  
+                  <Route path="/dashboard" element={
+                    isSetupComplete ? (
+                      <ProtectedRoute>
+                        <LazyDashboard />
+                      </ProtectedRoute>
+                    ) : <Navigate to="/setup" replace />
+                  } />
+                  
+                  <Route path="/timeline" element={
+                    isSetupComplete ? (
+                      <ProtectedRoute>
+                        <LazyTimelineViewer />
+                      </ProtectedRoute>
+                    ) : <Navigate to="/setup" replace />
+                  } />
+                  
+                  <Route path="/scenarios" element={
+                    isSetupComplete ? (
+                      <ProtectedRoute>
+                        <LazyScenarioBuilder />
+                      </ProtectedRoute>
+                    ) : <Navigate to="/setup" replace />
+                  } />
+                  
+                  <Route path="/data-feeds" element={
+                    isSetupComplete ? (
+                      <ProtectedRoute>
+                        <LazyDataFeeds />
+                      </ProtectedRoute>
+                    ) : <Navigate to="/setup" replace />
+                  } />
+                  
+                  <Route path="/settings" element={
+                    isSetupComplete ? (
+                      <ProtectedRoute>
+                        <LazySettings />
+                      </ProtectedRoute>
+                    ) : <Navigate to="/setup" replace />
+                  } />
+                  
+                  {/* Catch all route */}
+                  <Route path="*" element={<LazyNotFound />} />
                 </Routes>
               </Suspense>
             </AuthProvider>

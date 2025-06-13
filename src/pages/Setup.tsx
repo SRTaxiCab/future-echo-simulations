@@ -14,32 +14,31 @@ const Setup = () => {
   useEffect(() => {
     const checkSetupStatus = async () => {
       try {
-        console.log('Checking setup status...');
+        console.log('Setup: Checking setup status...');
         
         // Try production method first
         let setupComplete = false;
         try {
           setupComplete = await ProductionSetupScript.isSetupComplete();
-          console.log('Production setup check result:', setupComplete);
+          console.log('Setup: Production setup check result:', setupComplete);
         } catch (error) {
-          console.log('Production setup check failed, trying legacy method:', error);
+          console.log('Setup: Production setup check failed, trying legacy method:', error);
           // Fall back to legacy method
           setupComplete = SetupScript.isSetupComplete();
-          console.log('Legacy setup check result:', setupComplete);
+          console.log('Setup: Legacy setup check result:', setupComplete);
         }
         
         if (setupComplete) {
           setIsSetupNeeded(false);
-          setTimeout(() => {
-            navigate('/dashboard', { replace: true });
-          }, 100);
+          console.log('Setup: Already complete, redirecting to dashboard...');
+          navigate('/dashboard', { replace: true });
           return;
         }
 
         setIsSetupNeeded(true);
         setConnectionError(null);
       } catch (error) {
-        console.error('Error checking setup status:', error);
+        console.error('Setup: Error checking setup status:', error);
         setConnectionError('Unable to connect to database. Setup will use local storage.');
         setIsSetupNeeded(true);
       } finally {
@@ -51,7 +50,7 @@ const Setup = () => {
   }, [navigate]);
 
   const handleSetupComplete = () => {
-    console.log('Setup completed successfully');
+    console.log('Setup: Completed successfully');
     setIsSetupNeeded(false);
     setIsLoading(false);
     navigate('/dashboard', { replace: true });

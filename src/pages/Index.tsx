@@ -2,8 +2,8 @@
 import { Navigate } from 'react-router-dom';
 
 const Index = () => {
-  // This page simply redirects to the login page
-  return <Navigate to="/" replace />;
+  // Redirect to login page for initial authentication flow
+  return <Navigate to="/login" replace />;
 };
 
 export default Index;
