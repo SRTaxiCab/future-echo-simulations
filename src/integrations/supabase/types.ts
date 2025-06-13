@@ -224,11 +224,30 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["classification_level"]
       }
+      get_user_clearance_safe: {
+        Args: { user_uuid: string }
+        Returns: Database["public"]["Enums"]["classification_level"]
+      }
       get_user_role: {
         Args: Record<PropertyKey, never> | { user_uuid: string }
         Returns: string
       }
+      get_user_role_safe: {
+        Args: { user_uuid: string }
+        Returns: {
+          id: string
+          user_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          classification_clearance: Database["public"]["Enums"]["classification_level"]
+          granted_by: string
+          granted_at: string
+        }[]
+      }
       is_admin: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
+      is_user_admin: {
         Args: { user_uuid: string }
         Returns: boolean
       }

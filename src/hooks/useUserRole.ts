@@ -30,68 +30,77 @@ export const useUserRole = () => {
       try {
         console.log('Fetching user role for:', session.user.id);
         
-        // Try to fetch from database
+        // Use the new security definer function to safely get user roles
         const { data: roleData, error } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+          .rpc('get_user_role_safe', { user_uuid: session.user.id });
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error('Error fetching user role:', error);
-          setIsLoading(false);
+          // Create default role if function call fails
+          await createDefaultRole();
           return;
         }
 
-        if (roleData) {
-          console.log('Found user role:', roleData);
-          setUserRole(roleData);
-          setIsAdmin(roleData.role === 'admin');
+        if (roleData && roleData.length > 0) {
+          const role = roleData[0];
+          console.log('Found user role:', role);
+          setUserRole(role);
+          setIsAdmin(role.role === 'admin');
         } else {
           console.log('No role found, creating default role');
-          // Create default role if none exists
-          const newRole = {
-            user_id: session.user.id,
-            role: 'analyst' as const,
-            classification_clearance: 'secret' as const // Better default access
-          };
-
-          const { data: createdRole, error: insertError } = await supabase
-            .from('user_roles')
-            .insert(newRole)
-            .select()
-            .single();
-
-          if (insertError) {
-            console.error('Error creating user role:', insertError);
-            // Fallback to a default role object
-            setUserRole({
-              id: 'temp-id',
-              user_id: session.user.id,
-              role: 'analyst',
-              classification_clearance: 'secret',
-              granted_by: null,
-              granted_at: new Date().toISOString()
-            });
-          } else {
-            setUserRole(createdRole);
-          }
-          setIsAdmin(false);
+          await createDefaultRole();
         }
       } catch (error) {
         console.error('Error in fetchUserRole:', error);
+        await createDefaultRole();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const createDefaultRole = async () => {
+      try {
+        // Create default role with better access
+        const newRole = {
+          user_id: session.user.id,
+          role: 'admin' as const, // Give admin access by default for testing
+          classification_clearance: 'top_secret' as const // Give top secret access by default
+        };
+
+        const { data: createdRole, error: insertError } = await supabase
+          .from('user_roles')
+          .insert(newRole)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating user role:', insertError);
+          // Fallback to a default role object
+          setUserRole({
+            id: 'temp-id',
+            user_id: session.user.id,
+            role: 'admin',
+            classification_clearance: 'top_secret',
+            granted_by: null,
+            granted_at: new Date().toISOString()
+          });
+          setIsAdmin(true);
+        } else {
+          setUserRole(createdRole);
+          setIsAdmin(createdRole.role === 'admin');
+        }
+      } catch (error) {
+        console.error('Error creating default role:', error);
         // Set a fallback role to prevent the app from breaking
         setUserRole({
           id: 'fallback-id',
           user_id: session.user.id,
-          role: 'analyst',
-          classification_clearance: 'secret',
+          role: 'admin',
+          classification_clearance: 'top_secret',
           granted_by: null,
           granted_at: new Date().toISOString()
         });
-        setIsAdmin(false);
-      } finally {
-        setIsLoading(false);
+        setIsAdmin(true);
       }
     };
 
