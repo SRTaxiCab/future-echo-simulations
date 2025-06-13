@@ -20,16 +20,25 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@tanstack/react-query',
+      'lucide-react',
+      '@supabase/supabase-js',
+      '@supabase/postgrest-js'
+    ],
+    force: true
+  },
   build: {
-    // Production optimizations
     target: 'esnext',
     minify: 'esbuild',
     sourcemap: mode === 'development',
     rollupOptions: {
       output: {
-        // Manual chunk splitting for better caching
         manualChunks: {
-          // Vendor chunks
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-switch'],
           'vendor-query': ['@tanstack/react-query'],
@@ -37,7 +46,6 @@ export default defineConfig(({ mode }) => ({
           'vendor-charts': ['recharts', 'd3'],
           'vendor-utils': ['lucide-react', 'clsx', 'tailwind-merge', 'date-fns'],
           
-          // App chunks
           'pages-main': [
             './src/pages/Dashboard.tsx',
             './src/pages/Index.tsx'
@@ -54,7 +62,6 @@ export default defineConfig(({ mode }) => ({
             './src/pages/Settings.tsx'
           ]
         },
-        // Optimize chunk file names
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId
             ? path.basename(chunkInfo.facadeModuleId, path.extname(chunkInfo.facadeModuleId))
@@ -75,29 +82,14 @@ export default defineConfig(({ mode }) => ({
         }
       }
     },
-    // Optimize for production
     chunkSizeWarningLimit: 1000,
     cssCodeSplit: true,
-    // Enable CSS minification
     cssMinify: true,
     reportCompressedSize: false,
-    // Preload optimization
     modulePreload: {
       polyfill: false
     }
   },
-  // Performance optimizations
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      '@tanstack/react-query',
-      'lucide-react'
-    ],
-    exclude: ['@supabase/supabase-js']
-  },
-  // Enable esbuild for faster builds
   esbuild: {
     target: 'esnext',
     platform: 'browser',
