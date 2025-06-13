@@ -1,5 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { ProductionSetupScript } from './productionSetupScript';
 
 export interface SetupConfig {
   adminEmail: string;
@@ -37,10 +39,21 @@ export class SetupScript {
       // Step 3: Initialize system settings
       await this.initializeSystemSettings(config.systemSettings);
 
-      // Step 4: Create sample data (optional)
+      // Step 4: Try to set up production environment (optional)
+      try {
+        await ProductionSetupScript.setupProductionEnvironment(
+          config.systemSettings?.sessionTimeout || 480
+        );
+        console.log('Production environment setup completed');
+      } catch (prodError) {
+        console.warn('Production environment setup failed, continuing with localStorage:', prodError);
+        // Continue with setup even if production setup fails
+      }
+
+      // Step 5: Create sample data (optional)
       await this.createSampleData();
 
-      // Step 5: Mark setup as complete
+      // Step 6: Mark setup as complete
       await this.markSetupComplete();
 
       this.toast({
@@ -134,6 +147,7 @@ export class SetupScript {
         isAdmin: true
       };
 
+      // Store in localStorage for immediate use
       localStorage.setItem('adminRole', JSON.stringify(adminRole));
       localStorage.setItem('userRole', JSON.stringify(adminRole));
       localStorage.setItem('isAdmin', 'true');
@@ -162,7 +176,7 @@ export class SetupScript {
       setupDate: new Date().toISOString()
     };
 
-    // Store in localStorage for now
+    // Store in localStorage for immediate use
     localStorage.setItem('lookingGlassSettings', JSON.stringify(defaultSettings));
     
     console.log('System settings initialized:', defaultSettings);
@@ -209,7 +223,7 @@ export class SetupScript {
       return session.session !== null && SetupScript.isSetupComplete();
     } catch (error) {
       console.error('Setup validation failed:', error);
-      return false;
+      return SetupScript.isSetupComplete(); // Fall back to localStorage check
     }
   }
 }
