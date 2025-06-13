@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
 import { ProductionSetupScript } from './productionSetupScript';
 
 export interface SetupConfig {
@@ -10,7 +9,7 @@ export interface SetupConfig {
   systemSettings?: {
     defaultClassificationLevel: 'unclassified' | 'confidential' | 'secret' | 'top_secret';
     enableEmailVerification: boolean;
-    sessionTimeout: number; // in minutes
+    sessionTimeout: number;
   };
 }
 
@@ -25,43 +24,26 @@ export class SetupScript {
     try {
       console.log('Starting Project Looking Glass setup...');
       
-      // Step 1: Check if user already exists and sign in, or create new user
-      const user = await this.createOrSignInAdminUser(config.adminEmail, config.adminPassword);
+      // Step 1: Create admin user
+      const user = await this.createAdminUser(config.adminEmail, config.adminPassword);
       if (!user) {
-        throw new Error('Failed to create or sign in admin user');
+        throw new Error('Failed to create admin user');
       }
 
-      console.log('Admin user authenticated successfully');
+      console.log('Admin user created successfully');
 
-      // Step 2: Set admin role with top secret clearance FIRST
-      await this.setAdminRole(user.id);
+      // Step 2: Create admin profile and role
+      await this.setupAdminRole(user.id);
 
-      // Step 3: Initialize system settings
-      await this.initializeSystemSettings(config.systemSettings);
-
-      // Step 4: Try to set up production environment (optional)
-      try {
-        await ProductionSetupScript.setupProductionEnvironment(
-          config.systemSettings?.sessionTimeout || 480
-        );
-        console.log('Production environment setup completed');
-      } catch (prodError) {
-        console.warn('Production environment setup failed, continuing with localStorage:', prodError);
-        // Continue with setup even if production setup fails
-      }
-
-      // Step 5: Create sample data (optional)
-      await this.createSampleData();
-
-      // Step 6: Mark setup as complete
+      // Step 3: Mark setup as complete
       await this.markSetupComplete();
 
       this.toast({
         title: "Setup Complete",
-        description: "Project Looking Glass has been successfully initialized. You now have Administrator privileges with Top Secret clearance.",
+        description: "Project Looking Glass has been initialized. You now have Administrator privileges with Top Secret clearance.",
       });
 
-      console.log('Setup completed successfully! Admin role with Top Secret clearance granted.');
+      console.log('Setup completed successfully!');
       return true;
 
     } catch (error) {
@@ -75,23 +57,11 @@ export class SetupScript {
     }
   }
 
-  private async createOrSignInAdminUser(email: string, password: string) {
+  private async createAdminUser(email: string, password: string) {
     try {
-      // First try to sign in with existing credentials
-      console.log('Attempting to sign in with existing credentials...');
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (signInData.user && signInData.session) {
-        console.log('Successfully signed in with existing admin user');
-        return signInData.user;
-      }
-
-      // If sign in failed, try to create new user
-      console.log('Sign in failed, attempting to create new admin user...');
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      console.log('Creating admin user...');
+      
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -102,58 +72,54 @@ export class SetupScript {
         }
       });
 
-      if (signUpError) {
-        // If user already exists, try signing in again with a delay
-        if (signUpError.message.includes('User already registered')) {
-          console.log('User already exists, retrying sign in...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          const { data: retrySignIn, error: retryError } = await supabase.auth.signInWithPassword({
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          // Try to sign in instead
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password
           });
           
-          if (retryError) {
-            throw new Error(`Failed to sign in: ${retryError.message}`);
+          if (signInError) {
+            throw new Error(`Failed to sign in: ${signInError.message}`);
           }
           
-          return retrySignIn.user;
+          return signInData.user;
         }
-        throw new Error(`Failed to create admin user: ${signUpError.message}`);
+        throw new Error(`Failed to create admin user: ${error.message}`);
       }
 
-      if (signUpData.user) {
-        console.log('Successfully created new admin user');
-        return signUpData.user;
-      }
-
-      throw new Error('Failed to create or authenticate admin user');
+      return data.user;
     } catch (error) {
-      console.error('Error in createOrSignInAdminUser:', error);
+      console.error('Error in createAdminUser:', error);
       throw error;
     }
   }
 
-  private async setAdminRole(userId: string) {
+  private async setupAdminRole(userId: string) {
     try {
-      // Create admin role with top secret clearance
-      const adminRole = {
-        id: userId,
-        user_id: userId,
-        role: 'admin',
-        classification_clearance: 'top_secret',
-        granted_by: userId,
-        granted_at: new Date().toISOString(),
-        isAdmin: true
-      };
-
-      // Store in localStorage for immediate use
-      localStorage.setItem('adminRole', JSON.stringify(adminRole));
-      localStorage.setItem('userRole', JSON.stringify(adminRole));
-      localStorage.setItem('isAdmin', 'true');
-      localStorage.setItem('classificationClearance', 'top_secret');
+      console.log('Setting up admin role...');
       
-      console.log('Admin role with Top Secret clearance set successfully:', adminRole);
+      // Create profile
+      await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          username: 'Administrator',
+          role: 'Administrator'
+        });
+
+      // Create admin role with top secret clearance
+      await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: userId,
+          role: 'admin',
+          classification_clearance: 'top_secret',
+          granted_by: userId
+        });
+
+      console.log('Admin role setup completed');
       
       this.toast({
         title: "Administrator Privileges Granted",
@@ -166,44 +132,17 @@ export class SetupScript {
     }
   }
 
-  private async initializeSystemSettings(settings?: SetupConfig['systemSettings']) {
-    // Create system settings
-    const defaultSettings = {
-      defaultClassificationLevel: settings?.defaultClassificationLevel || 'unclassified',
-      enableEmailVerification: settings?.enableEmailVerification ?? false,
-      sessionTimeout: settings?.sessionTimeout || 480, // 8 hours
-      setupCompleted: true,
-      setupDate: new Date().toISOString()
-    };
-
-    // Store in localStorage for immediate use
-    localStorage.setItem('lookingGlassSettings', JSON.stringify(defaultSettings));
-    
-    console.log('System settings initialized:', defaultSettings);
-  }
-
-  private async createSampleData() {
-    // Create sample templates
-    const sampleTemplates = [
-      {
-        name: 'Technology Disruption Analysis',
-        description: 'Analyze potential disruption in technology sector',
-        variables: ['Technology Adoption', 'Market Sentiment', 'Regulatory Changes']
-      },
-      {
-        name: 'Economic Impact Assessment',
-        description: 'Assess economic impacts of policy changes',
-        variables: ['Economic Conditions', 'Consumer Behavior', 'Geopolitical Events']
-      }
-    ];
-
-    localStorage.setItem('scenarioTemplates', JSON.stringify(sampleTemplates));
-    console.log('Sample data created');
-  }
-
   private async markSetupComplete() {
+    // Mark in both places for reliability
     localStorage.setItem('setupCompleted', 'true');
     localStorage.setItem('setupDate', new Date().toISOString());
+    
+    try {
+      await ProductionSetupScript.markSetupComplete();
+    } catch (error) {
+      console.warn('Failed to mark setup complete in database, using localStorage fallback');
+    }
+    
     console.log('Setup marked as complete');
   }
 
@@ -217,13 +156,11 @@ export class SetupScript {
 
   async validateSetup(): Promise<boolean> {
     try {
-      // Check if user is signed in
       const { data: session } = await supabase.auth.getSession();
-      
       return session.session !== null && SetupScript.isSetupComplete();
     } catch (error) {
       console.error('Setup validation failed:', error);
-      return SetupScript.isSetupComplete(); // Fall back to localStorage check
+      return SetupScript.isSetupComplete();
     }
   }
 }

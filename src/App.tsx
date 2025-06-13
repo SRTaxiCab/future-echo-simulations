@@ -25,14 +25,12 @@ import {
 import Index from "./pages/Index";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
-// Optimize QueryClient for production
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       retry: (failureCount, error: any) => {
-        // Don't retry on 4xx errors
         if (error?.status >= 400 && error?.status < 500) {
           return false;
         }
@@ -49,33 +47,43 @@ const queryClient = new QueryClient({
 const App = () => {
   const [isSetupComplete, setIsSetupComplete] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkSetupStatus = async () => {
       try {
         console.log('App: Checking setup status...');
         
-        // Try production method first
-        let setupComplete = false;
-        try {
-          setupComplete = await ProductionSetupScript.isSetupComplete();
-          console.log('App: Production setup check result:', setupComplete);
-          setConnectionError(null);
-        } catch (error) {
-          console.log('App: Production setup check failed, trying legacy method:', error);
-          setConnectionError('Database connection issues - using offline mode');
-          // Fall back to legacy method
-          setupComplete = SetupScript.isSetupComplete();
-          console.log('App: Legacy setup check result:', setupComplete);
+        // Check localStorage first for immediate response
+        const localSetup = SetupScript.isSetupComplete();
+        console.log('Local setup status:', localSetup);
+        
+        // If locally complete, set state and check database in background
+        if (localSetup) {
+          setIsSetupComplete(true);
+          setIsLoading(false);
+          
+          // Background check of production setup
+          try {
+            const prodSetup = await ProductionSetupScript.isSetupComplete();
+            console.log('Production setup status:', prodSetup);
+          } catch (error) {
+            console.log('Production setup check failed (non-critical):', error);
+          }
+          return;
         }
         
-        setIsSetupComplete(setupComplete);
+        // If not locally complete, check production
+        try {
+          const prodSetup = await ProductionSetupScript.isSetupComplete();
+          console.log('Production setup check result:', prodSetup);
+          setIsSetupComplete(prodSetup);
+        } catch (error) {
+          console.log('Production setup check failed, using local result:', error);
+          setIsSetupComplete(localSetup);
+        }
       } catch (error) {
         console.error('App: Error checking setup status:', error);
-        setConnectionError('Connection error - using offline mode');
-        // Fall back to localStorage check
-        setIsSetupComplete(SetupScript.isSetupComplete());
+        setIsSetupComplete(false);
       } finally {
         setIsLoading(false);
       }
@@ -85,16 +93,7 @@ const App = () => {
   }, []);
 
   if (isLoading) {
-    return (
-      <div>
-        <LoadingFallback message="Initializing Looking Glass..." />
-        {connectionError && (
-          <div className="fixed bottom-4 right-4 bg-amber-950/90 border border-amber-800 text-amber-200 px-4 py-2 rounded text-sm font-mono">
-            ⚠️ {connectionError}
-          </div>
-        )}
-      </div>
-    );
+    return <LoadingFallback message="Initializing Looking Glass..." />;
   }
 
   return (
@@ -103,21 +102,16 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          {connectionError && (
-            <div className="fixed top-0 left-0 right-0 bg-amber-950/20 border-b border-amber-800 text-amber-200 px-4 py-2 text-sm font-mono z-50">
-              ⚠️ {connectionError}
-            </div>
-          )}
           <BrowserRouter>
             <AuthProvider>
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
-                  {/* Setup route - always available but conditionally redirects */}
+                  {/* Setup route */}
                   <Route path="/setup" element={
-                    isSetupComplete ? <Navigate to="/dashboard" replace /> : <LazySetup />
+                    isSetupComplete ? <Navigate to="/auth" replace /> : <LazySetup />
                   } />
                   
-                  {/* Main routes - available when setup is complete */}
+                  {/* Auth routes */}
                   <Route path="/" element={
                     isSetupComplete ? <Index /> : <Navigate to="/setup" replace />
                   } />
@@ -130,6 +124,7 @@ const App = () => {
                     isSetupComplete ? <LazyAuth /> : <Navigate to="/setup" replace />
                   } />
                   
+                  {/* Protected application routes */}
                   <Route path="/dashboard" element={
                     isSetupComplete ? (
                       <ProtectedRoute>
@@ -170,7 +165,6 @@ const App = () => {
                     ) : <Navigate to="/setup" replace />
                   } />
                   
-                  {/* Catch all route */}
                   <Route path="*" element={<LazyNotFound />} />
                 </Routes>
               </Suspense>

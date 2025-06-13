@@ -32,80 +32,114 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener first
+    let mounted = true;
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         
-        if (session?.user) {
-          // Use setTimeout to defer profile fetching and prevent deadlock
+        if (session?.user && event !== 'SIGNED_OUT') {
+          // Use setTimeout to prevent potential deadlocks
           setTimeout(async () => {
+            if (!mounted) return;
+            
             try {
+              // Try to get profile from database
               const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('username, role, avatar_url')
                 .eq('id', session.user.id)
                 .maybeSingle();
               
-              if (error) {
+              if (error && error.code !== 'PGRST116') {
                 console.error('Error fetching profile:', error);
-                // If profile doesn't exist, create one
-                if (error.code === 'PGRST116') {
-                  const { error: insertError } = await supabase
-                    .from('profiles')
-                    .insert({
-                      id: session.user.id,
-                      username: session.user.email?.split('@')[0] || 'User',
-                      role: 'Analyst'
-                    });
-                  
-                  if (!insertError) {
-                    setUser({
-                      id: session.user.id,
-                      username: session.user.email?.split('@')[0] || 'User',
-                      role: 'Analyst',
-                    });
-                    
-                    // Create default user_role entry
-                    await supabase
-                      .from('user_roles')
-                      .insert({
-                        user_id: session.user.id,
-                        role: 'analyst',
-                        classification_clearance: 'unclassified'
-                      });
-                  }
+              }
+
+              // Set user state with fallback values
+              const userData = {
+                id: session.user.id,
+                username: profile?.username || session.user.email?.split('@')[0] || 'User',
+                role: profile?.role || 'Analyst',
+                avatar: profile?.avatar_url || undefined,
+              };
+              
+              if (mounted) {
+                setUser(userData);
+                
+                // If no profile exists, create one
+                if (!profile) {
+                  await createUserProfile(session.user.id, userData.username, userData.role);
                 }
-              } else if (profile) {
-                setUser({
-                  id: session.user.id,
-                  username: profile.username || session.user.email?.split('@')[0] || 'User',
-                  role: profile.role || 'Analyst',
-                  avatar: profile.avatar_url || undefined,
-                });
               }
             } catch (error) {
-              console.error('Error in profile fetch:', error);
+              console.error('Error in profile setup:', error);
+              if (mounted) {
+                setUser({
+                  id: session.user.id,
+                  username: session.user.email?.split('@')[0] || 'User',
+                  role: 'Analyst',
+                });
+              }
             }
-          }, 0);
+          }, 100);
         } else {
           setUser(null);
         }
-        setIsLoading(false);
+        
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email);
-      if (!session) {
+      if (mounted && !session) {
         setIsLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const createUserProfile = async (userId: string, username: string, role: string) => {
+    try {
+      // Create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          username: username,
+          role: role
+        });
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+      }
+
+      // Create user role with default analyst privileges
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: userId,
+          role: 'analyst',
+          classification_clearance: 'secret' // Give users better default access
+        });
+
+      if (roleError) {
+        console.error('Error creating user role:', roleError);
+      }
+    } catch (error) {
+      console.error('Error in createUserProfile:', error);
+    }
+  };
 
   const signup = async (email: string, password: string, username?: string) => {
     setIsLoading(true);
@@ -134,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (data.session) {
         toast({
           title: "Welcome to Project Looking Glass",
-          description: "Account created successfully",
+          description: "Account created successfully with Secret clearance.",
         });
         navigate('/dashboard');
       }
@@ -142,9 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Signup error:', error);
       let errorMessage = "An error occurred during signup";
       
-      if (error.message?.includes('email_provider_disabled')) {
-        errorMessage = "Email authentication is currently disabled. Please contact support.";
-      } else if (error.message?.includes('already_registered')) {
+      if (error.message?.includes('already_registered')) {
         errorMessage = "This email is already registered. Try logging in instead.";
       } else if (error.message) {
         errorMessage = error.message;
@@ -185,9 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Login error:', error);
       let errorMessage = "Authentication failed";
       
-      if (error.message?.includes('email_provider_disabled')) {
-        errorMessage = "Email authentication is currently disabled. Please contact support.";
-      } else if (error.message?.includes('Invalid login credentials')) {
+      if (error.message?.includes('Invalid login credentials')) {
         errorMessage = "Invalid email or password. Please check your credentials.";
       } else if (error.message?.includes('Email not confirmed')) {
         errorMessage = "Please check your email and click the confirmation link.";

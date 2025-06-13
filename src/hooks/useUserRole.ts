@@ -20,117 +20,78 @@ export const useUserRole = () => {
 
   useEffect(() => {
     if (!session?.user?.id) {
+      setUserRole(null);
+      setIsAdmin(false);
       setIsLoading(false);
       return;
     }
 
     const fetchUserRole = async () => {
       try {
-        // Try to fetch from database first
-        const { data: roleData, error: roleError } = await supabase
+        console.log('Fetching user role for:', session.user.id);
+        
+        // Try to fetch from database
+        const { data: roleData, error } = await supabase
           .from('user_roles')
           .select('*')
           .eq('user_id', session.user.id)
           .maybeSingle();
 
-        if (roleError && roleError.code !== 'PGRST116') {
-          console.error('Error fetching user role:', roleError);
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching user role:', error);
           setIsLoading(false);
           return;
         }
 
         if (roleData) {
+          console.log('Found user role:', roleData);
           setUserRole(roleData);
           setIsAdmin(roleData.role === 'admin');
-          setIsLoading(false);
-          return;
-        }
-
-        // Fallback: Check localStorage for setup data (backwards compatibility)
-        const adminRoleString = localStorage.getItem('adminRole');
-        const userRoleString = localStorage.getItem('userRole');
-        
-        if (adminRoleString && session.user.id) {
-          try {
-            const adminRole = JSON.parse(adminRoleString);
-            if (adminRole.user_id === session.user.id) {
-              // Migrate localStorage role to database
-              await migrateRoleToDatabase(adminRole);
-              return;
-            }
-          } catch (e) {
-            console.error('Error parsing admin role from localStorage:', e);
-          }
-        }
-
-        if (userRoleString && session.user.id) {
-          try {
-            const storedRole = JSON.parse(userRoleString);
-            if (storedRole.user_id === session.user.id) {
-              // Migrate localStorage role to database
-              await migrateRoleToDatabase(storedRole);
-              return;
-            }
-          } catch (e) {
-            console.error('Error parsing user role from localStorage:', e);
-          }
-        }
-
-        // If no role exists anywhere, create a default one
-        const { data: newRole, error: insertError } = await supabase
-          .from('user_roles')
-          .insert({
+        } else {
+          console.log('No role found, creating default role');
+          // Create default role if none exists
+          const newRole = {
             user_id: session.user.id,
-            role: 'analyst',
-            classification_clearance: 'unclassified'
-          })
-          .select()
-          .single();
+            role: 'analyst' as const,
+            classification_clearance: 'secret' as const // Better default access
+          };
 
-        if (insertError) {
-          console.error('Error creating user role:', insertError);
-          setIsLoading(false);
-          return;
+          const { data: createdRole, error: insertError } = await supabase
+            .from('user_roles')
+            .insert(newRole)
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Error creating user role:', insertError);
+            // Fallback to a default role object
+            setUserRole({
+              id: 'temp-id',
+              user_id: session.user.id,
+              role: 'analyst',
+              classification_clearance: 'secret',
+              granted_by: null,
+              granted_at: new Date().toISOString()
+            });
+          } else {
+            setUserRole(createdRole);
+          }
+          setIsAdmin(false);
         }
-
-        setUserRole(newRole);
-        setIsAdmin(newRole.role === 'admin');
       } catch (error) {
         console.error('Error in fetchUserRole:', error);
+        // Set a fallback role to prevent the app from breaking
+        setUserRole({
+          id: 'fallback-id',
+          user_id: session.user.id,
+          role: 'analyst',
+          classification_clearance: 'secret',
+          granted_by: null,
+          granted_at: new Date().toISOString()
+        });
+        setIsAdmin(false);
       } finally {
         setIsLoading(false);
-      }
-    };
-
-    const migrateRoleToDatabase = async (localRole: any) => {
-      try {
-        const { data: newRole, error: insertError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: localRole.user_id,
-            role: localRole.role,
-            classification_clearance: localRole.classification_clearance,
-            granted_by: localRole.granted_by
-          })
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error('Error migrating role to database:', insertError);
-          return;
-        }
-
-        setUserRole(newRole);
-        setIsAdmin(newRole.role === 'admin');
-        setIsLoading(false);
-
-        // Clean up localStorage after successful migration
-        localStorage.removeItem('adminRole');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('isAdmin');
-        localStorage.removeItem('classificationClearance');
-      } catch (error) {
-        console.error('Error in migrateRoleToDatabase:', error);
       }
     };
 
