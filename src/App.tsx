@@ -134,6 +134,15 @@ const App = () => {
                     ) : <Navigate to="/setup" replace />
                   } />
                   
+                  {/* Handle both /scenario and /scenarios routes */}
+                  <Route path="/scenario" element={
+                    isSetupComplete ? (
+                      <ProtectedRoute>
+                        <LazyScenarioBuilder />
+                      </ProtectedRoute>
+                    ) : <Navigate to="/setup" replace />
+                  } />
+                  
                   <Route path="/scenarios" element={
                     isSetupComplete ? (
                       <ProtectedRoute>
