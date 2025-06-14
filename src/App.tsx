@@ -57,18 +57,10 @@ const App = () => {
         const localSetup = SetupScript.isSetupComplete();
         console.log('Local setup status:', localSetup);
         
-        // If locally complete, set state and check database in background
+        // If locally complete, set state immediately
         if (localSetup) {
           setIsSetupComplete(true);
           setIsLoading(false);
-          
-          // Background check of production setup
-          try {
-            const prodSetup = await ProductionSetupScript.isSetupComplete();
-            console.log('Production setup status:', prodSetup);
-          } catch (error) {
-            console.log('Production setup check failed (non-critical):', error);
-          }
           return;
         }
         
@@ -106,18 +98,19 @@ const App = () => {
             <AuthProvider>
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
-                  {/* Setup route */}
+                  {/* Setup route - only if setup not complete */}
                   <Route path="/setup" element={
-                    isSetupComplete ? <Navigate to="/auth" replace /> : <LazySetup />
+                    isSetupComplete ? <Navigate to="/dashboard" replace /> : <LazySetup />
                   } />
                   
-                  {/* Auth routes */}
+                  {/* Root route - redirect based on setup status */}
                   <Route path="/" element={
-                    isSetupComplete ? <Index /> : <Navigate to="/setup" replace />
+                    isSetupComplete ? <Navigate to="/dashboard" replace /> : <Navigate to="/setup" replace />
                   } />
                   
+                  {/* Auth routes - only if setup complete */}
                   <Route path="/login" element={
-                    isSetupComplete ? <LazyLogin /> : <Navigate to="/setup" replace />
+                    isSetupComplete ? <Navigate to="/auth" replace /> : <Navigate to="/setup" replace />
                   } />
                   
                   <Route path="/auth" element={
