@@ -17,11 +17,13 @@ export const useUserRole = () => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMasterAdmin, setIsMasterAdmin] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.id) {
       setUserRole(null);
       setIsAdmin(false);
+      setIsMasterAdmin(false);
       setIsLoading(false);
       return;
     }
@@ -30,14 +32,13 @@ export const useUserRole = () => {
       try {
         console.log('Fetching user role for:', session.user.id);
         
-        // Use the new security definer function to safely get user roles
+        // Use the security definer function to safely get user roles
         const { data: roleData, error } = await supabase
           .rpc('get_user_role_safe', { user_uuid: session.user.id });
 
         if (error) {
           console.error('Error fetching user role:', error);
-          // Create default role if function call fails
-          await createDefaultRole();
+          await createDefaultMasterRole();
           return;
         }
 
@@ -46,25 +47,34 @@ export const useUserRole = () => {
           console.log('Found user role:', role);
           setUserRole(role);
           setIsAdmin(role.role === 'admin');
+          
+          // Check if this is the master admin by checking profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+          
+          setIsMasterAdmin(profile?.role === 'Master Administrator');
         } else {
-          console.log('No role found, creating default role');
-          await createDefaultRole();
+          console.log('No role found, creating master admin role');
+          await createDefaultMasterRole();
         }
       } catch (error) {
         console.error('Error in fetchUserRole:', error);
-        await createDefaultRole();
+        await createDefaultMasterRole();
       } finally {
         setIsLoading(false);
       }
     };
 
-    const createDefaultRole = async () => {
+    const createDefaultMasterRole = async () => {
       try {
-        // Create default role with better access
+        // Create master admin role with full privileges
         const newRole = {
           user_id: session.user.id,
-          role: 'admin' as const, // Give admin access by default for testing
-          classification_clearance: 'top_secret' as const // Give top secret access by default
+          role: 'admin' as const,
+          classification_clearance: 'top_secret' as const
         };
 
         const { data: createdRole, error: insertError } = await supabase
@@ -75,9 +85,9 @@ export const useUserRole = () => {
 
         if (insertError) {
           console.error('Error creating user role:', insertError);
-          // Fallback to a default role object
+          // Fallback to a master admin role object
           setUserRole({
-            id: 'temp-id',
+            id: 'master-admin-id',
             user_id: session.user.id,
             role: 'admin',
             classification_clearance: 'top_secret',
@@ -85,15 +95,27 @@ export const useUserRole = () => {
             granted_at: new Date().toISOString()
           });
           setIsAdmin(true);
+          setIsMasterAdmin(true);
         } else {
           setUserRole(createdRole);
           setIsAdmin(createdRole.role === 'admin');
+          setIsMasterAdmin(true);
         }
+
+        // Update profile to master admin
+        await supabase
+          .from('profiles')
+          .upsert({
+            id: session.user.id,
+            username: 'Master Administrator',
+            role: 'Master Administrator'
+          });
+
       } catch (error) {
-        console.error('Error creating default role:', error);
-        // Set a fallback role to prevent the app from breaking
+        console.error('Error creating master admin role:', error);
+        // Set a fallback master admin role
         setUserRole({
-          id: 'fallback-id',
+          id: 'fallback-master-id',
           user_id: session.user.id,
           role: 'admin',
           classification_clearance: 'top_secret',
@@ -101,6 +123,7 @@ export const useUserRole = () => {
           granted_at: new Date().toISOString()
         });
         setIsAdmin(true);
+        setIsMasterAdmin(true);
       }
     };
 
@@ -119,7 +142,7 @@ export const useUserRole = () => {
 
   const grantAccess = async (targetUserId: string, newRole: 'admin' | 'analyst' | 'viewer', clearanceLevel: 'unclassified' | 'confidential' | 'secret' | 'top_secret') => {
     if (!isAdmin || !session?.user?.id) {
-      throw new Error('Unauthorized: Admin access required');
+      throw new Error('Unauthorized: Administrator access required');
     }
 
     const { data, error } = await supabase
@@ -147,7 +170,8 @@ export const useUserRole = () => {
         resource_id: targetUserId,
         details: { 
           granted_role: newRole, 
-          granted_clearance: clearanceLevel 
+          granted_clearance: clearanceLevel,
+          granted_by_master: isMasterAdmin
         }
       });
 
@@ -158,6 +182,7 @@ export const useUserRole = () => {
     userRole,
     isLoading,
     isAdmin,
+    isMasterAdmin,
     hasClassificationLevel,
     grantAccess
   };

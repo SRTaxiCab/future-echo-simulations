@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ProductionSetupScript } from './productionSetupScript';
 
@@ -32,18 +31,18 @@ export class SetupScript {
 
       console.log('Admin user created successfully');
 
-      // Step 2: Create admin profile and role
-      await this.setupAdminRole(user.id);
+      // Step 2: Create admin profile and role with master control
+      await this.setupMasterAdminRole(user.id, config.adminEmail);
 
       // Step 3: Mark setup as complete
       await this.markSetupComplete();
 
       this.toast({
-        title: "Setup Complete",
-        description: "Project Looking Glass has been initialized. You now have Administrator privileges with Top Secret clearance.",
+        title: "Master Control Established",
+        description: "Project Looking Glass has been initialized. You now have Master Administrator privileges with Top Secret clearance and full system control.",
       });
 
-      console.log('Setup completed successfully!');
+      console.log('Setup completed successfully with master admin privileges!');
       return true;
 
     } catch (error) {
@@ -59,15 +58,15 @@ export class SetupScript {
 
   private async createAdminUser(email: string, password: string) {
     try {
-      console.log('Creating admin user...');
+      console.log('Creating master admin user...');
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            username: 'Administrator',
-            role: 'Administrator'
+            username: 'Master Administrator',
+            role: 'Master Administrator'
           }
         }
       });
@@ -86,7 +85,7 @@ export class SetupScript {
           
           return signInData.user;
         }
-        throw new Error(`Failed to create admin user: ${error.message}`);
+        throw new Error(`Failed to create master admin user: ${error.message}`);
       }
 
       return data.user;
@@ -96,20 +95,20 @@ export class SetupScript {
     }
   }
 
-  private async setupAdminRole(userId: string) {
+  private async setupMasterAdminRole(userId: string, email: string) {
     try {
-      console.log('Setting up admin role...');
+      console.log('Setting up master administrator role...');
       
-      // Create profile
+      // Create profile with master admin designation
       await supabase
         .from('profiles')
         .upsert({
           id: userId,
-          username: 'Administrator',
-          role: 'Administrator'
+          username: 'Master Administrator',
+          role: 'Master Administrator'
         });
 
-      // Create admin role with top secret clearance
+      // Create admin role with top secret clearance and full control
       await supabase
         .from('user_roles')
         .upsert({
@@ -119,16 +118,32 @@ export class SetupScript {
           granted_by: userId
         });
 
-      console.log('Admin role setup completed');
+      // Create audit log for master control establishment
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userId,
+          action: 'establish_master_control',
+          resource_type: 'system',
+          resource_id: userId,
+          details: {
+            email: email,
+            role: 'Master Administrator',
+            clearance: 'top_secret',
+            control_level: 'master'
+          }
+        });
+
+      console.log('Master administrator role setup completed');
       
       this.toast({
-        title: "Administrator Privileges Granted",
-        description: "You have been granted Administrator role with Top Secret clearance.",
+        title: "Master Control Established",
+        description: `You (${email}) have been granted Master Administrator privileges with Top Secret clearance and full system control.`,
       });
       
     } catch (error) {
-      console.error('Error setting admin role:', error);
-      throw new Error('Failed to set administrator privileges');
+      console.error('Error setting master admin role:', error);
+      throw new Error('Failed to establish master administrator privileges');
     }
   }
 
