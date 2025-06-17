@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -206,12 +205,12 @@ const Settings = () => {
                     
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" defaultValue={user?.email || "analyst@projectlookingglass.com"} />
+                      <Input id="email" type="email" defaultValue="analyst@projectlookingglass.com" />
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="role">Role / Department</Label>
-                      <Input id="role" defaultValue="Intelligence Analyst" />
+                      <Input id="role" defaultValue={user?.role || 'Intelligence Analyst'} />
                     </div>
                   </CardContent>
                 </Card>
