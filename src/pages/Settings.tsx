@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/context/SettingsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -28,7 +29,6 @@ import {
   TestTube,
   Loader2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 
 const Settings = () => {
@@ -110,7 +110,7 @@ const Settings = () => {
       const [parent, child] = key.split('.');
       updateSettings({
         [parent]: {
-          ...settings[parent as keyof typeof settings],
+          ...(settings[parent as keyof typeof settings] as any),
           [child]: value
         }
       });

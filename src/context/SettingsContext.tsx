@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 export interface UserSettings {
   id?: string;
@@ -100,7 +100,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       if (data) {
-        setSettings(data);
+        setSettings(data as UserSettings);
       } else {
         // No settings found, create default
         await createDefaultSettings();
@@ -137,7 +137,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
 
-      setSettings(data);
+      setSettings(data as UserSettings);
     } catch (error) {
       console.error('Error in createDefaultSettings:', error);
     }
@@ -147,8 +147,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user || !settings) return;
 
     try {
-      const updatedSettings = { ...settings, ...updates };
-
       const { data, error } = await supabase
         .from('user_settings')
         .update(updates)
@@ -166,7 +164,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
 
-      setSettings(data);
+      setSettings(data as UserSettings);
       toast({
         title: "Settings updated",
         description: "Your preferences have been saved",
@@ -207,7 +205,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
 
-      setSettings(data);
+      setSettings(data as UserSettings);
       toast({
         title: "Settings reset",
         description: "All preferences have been reset to defaults",

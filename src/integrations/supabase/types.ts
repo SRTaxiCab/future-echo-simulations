@@ -215,6 +215,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          animations_enabled: boolean
+          auto_simulation: boolean
+          compact_view: boolean
+          confidence_threshold: number
+          created_at: string
+          dark_mode: boolean
+          default_view: string
+          id: string
+          language: string
+          nlp_model: string
+          notifications: Json
+          simulation_complexity: string
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          animations_enabled?: boolean
+          auto_simulation?: boolean
+          compact_view?: boolean
+          confidence_threshold?: number
+          created_at?: string
+          dark_mode?: boolean
+          default_view?: string
+          id?: string
+          language?: string
+          nlp_model?: string
+          notifications?: Json
+          simulation_complexity?: string
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          animations_enabled?: boolean
+          auto_simulation?: boolean
+          compact_view?: boolean
+          confidence_threshold?: number
+          created_at?: string
+          dark_mode?: boolean
+          default_view?: string
+          id?: string
+          language?: string
+          nlp_model?: string
+          notifications?: Json
+          simulation_complexity?: string
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
