@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { useSettings } from '@/context/SettingsContext';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Bell, 
   Globe, 
@@ -23,31 +24,133 @@ import {
   AlertTriangle,
   Shield,
   Check,
-  FileText
+  FileText,
+  TestTube,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 
 const Settings = () => {
   const { user } = useAuth();
+  const { settings, isLoading, updateSettings, resetSettings } = useSettings();
   const { toast } = useToast();
+  const [testingModel, setTestingModel] = useState(false);
+  const [saving, setSaving] = useState(false);
   
-  const saveSettings = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been updated"
-    });
+  const handleSaveSettings = async () => {
+    if (!settings) return;
+    
+    setSaving(true);
+    try {
+      // Settings are automatically saved through the context
+      toast({
+        title: "Settings saved",
+        description: "Your preferences have been updated successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Error saving settings",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const testNLPModel = async () => {
+    if (!settings) return;
+    
+    setTestingModel(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('test-nlp-model', {
+        body: { 
+          model: settings.nlp_model,
+          testMessage: "Test connection to verify NLP model is working correctly."
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Model test failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data.success) {
+        toast({
+          title: "Model test successful",
+          description: `${settings.nlp_model} is working correctly`,
+        });
+      } else {
+        toast({
+          title: "Model test failed",
+          description: data.error || "Unknown error",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Test failed",
+        description: "Could not connect to test service",
+        variant: "destructive"
+      });
+    } finally {
+      setTestingModel(false);
+    }
+  };
+
+  const updateSetting = (key: string, value: any) => {
+    if (!settings) return;
+    
+    if (key.includes('.')) {
+      const [parent, child] = key.split('.');
+      updateSettings({
+        [parent]: {
+          ...settings[parent as keyof typeof settings],
+          [child]: value
+        }
+      });
+    } else {
+      updateSettings({ [key]: value });
+    }
+  };
+
+  if (isLoading || !settings) {
+    return (
+      <AppLayout>
+        <div className="p-6 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p>Loading settings...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
   
   return (
     <AppLayout>
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Settings</h1>
-          <Button onClick={saveSettings} className="bg-cyber hover:bg-cyber-dark">
-            <Save className="h-4 w-4 mr-2" />
-            Save Changes
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleSaveSettings} 
+              className="bg-cyber hover:bg-cyber-dark"
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Changes
+            </Button>
+          </div>
         </div>
         
         <Tabs defaultValue="profile" className="space-y-6">
@@ -103,12 +206,12 @@ const Settings = () => {
                     
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" defaultValue="analyst@projectlookingglass.com" />
+                      <Input id="email" type="email" defaultValue={user?.email || "analyst@projectlookingglass.com"} />
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="role">Role / Department</Label>
-                      <Input id="role" defaultValue={user?.role || 'Intelligence Analyst'} />
+                      <Input id="role" defaultValue="Intelligence Analyst" />
                     </div>
                   </CardContent>
                 </Card>
@@ -123,6 +226,8 @@ const Settings = () => {
                       <Label htmlFor="timezone">Timezone</Label>
                       <select 
                         id="timezone" 
+                        value={settings.timezone}
+                        onChange={(e) => updateSetting('timezone', e.target.value)}
                         className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <option value="utc">UTC (Coordinated Universal Time)</option>
@@ -136,6 +241,8 @@ const Settings = () => {
                       <Label htmlFor="language">Language</Label>
                       <select 
                         id="language" 
+                        value={settings.language}
+                        onChange={(e) => updateSetting('language', e.target.value)}
                         className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <option value="en">English</option>
@@ -147,12 +254,16 @@ const Settings = () => {
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="tfa" className="block mb-1">Enable Dark Mode</Label>
+                        <Label htmlFor="dark-mode" className="block mb-1">Enable Dark Mode</Label>
                         <p className="text-sm text-muted-foreground">
                           Enable or disable dark mode for the interface
                         </p>
                       </div>
-                      <Switch id="tfa" defaultChecked />
+                      <Switch 
+                        id="dark-mode" 
+                        checked={settings.dark_mode}
+                        onCheckedChange={(checked) => updateSetting('dark_mode', checked)}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -206,13 +317,18 @@ const Settings = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <Label className="mb-1 block">Delete Account</Label>
+                      <Label className="mb-1 block">Reset Settings</Label>
                       <p className="text-sm text-muted-foreground mb-3">
-                        This will permanently delete your account and all associated data.
+                        This will reset all your preferences to default values.
                       </p>
-                      <Button variant="destructive" size="sm" className="w-full">
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={resetSettings}
+                      >
                         <Trash className="h-4 w-4 mr-2" />
-                        Delete Account
+                        Reset All Settings
                       </Button>
                     </div>
                   </CardContent>
@@ -238,7 +354,11 @@ const Settings = () => {
                           Receive alerts when significant timeline anomalies are detected
                         </p>
                       </div>
-                      <Switch id="timeline-anomalies" defaultChecked />
+                      <Switch 
+                        id="timeline-anomalies" 
+                        checked={settings.notifications.timeline_anomalies}
+                        onCheckedChange={(checked) => updateSetting('notifications.timeline_anomalies', checked)}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -248,7 +368,11 @@ const Settings = () => {
                           Notifications when predictive timelines are significantly updated
                         </p>
                       </div>
-                      <Switch id="timeline-updates" defaultChecked />
+                      <Switch 
+                        id="timeline-updates" 
+                        checked={settings.notifications.timeline_updates}
+                        onCheckedChange={(checked) => updateSetting('notifications.timeline_updates', checked)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -265,7 +389,11 @@ const Settings = () => {
                           Critical updates from monitored data sources
                         </p>
                       </div>
-                      <Switch id="feed-highpriority" defaultChecked />
+                      <Switch 
+                        id="feed-highpriority" 
+                        checked={settings.notifications.feed_highpriority}
+                        onCheckedChange={(checked) => updateSetting('notifications.feed_highpriority', checked)}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -275,7 +403,11 @@ const Settings = () => {
                           Alerts when topics in your focus areas are trending
                         </p>
                       </div>
-                      <Switch id="feed-trending" />
+                      <Switch 
+                        id="feed-trending" 
+                        checked={settings.notifications.feed_trending}
+                        onCheckedChange={(checked) => updateSetting('notifications.feed_trending', checked)}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -285,7 +417,11 @@ const Settings = () => {
                           Receive a daily digest of key events and developments
                         </p>
                       </div>
-                      <Switch id="feed-daily" defaultChecked />
+                      <Switch 
+                        id="feed-daily" 
+                        checked={settings.notifications.feed_daily}
+                        onCheckedChange={(checked) => updateSetting('notifications.feed_daily', checked)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -302,7 +438,11 @@ const Settings = () => {
                           Notifications about system maintenance and updates
                         </p>
                       </div>
-                      <Switch id="system-updates" defaultChecked />
+                      <Switch 
+                        id="system-updates" 
+                        checked={settings.notifications.system_updates}
+                        onCheckedChange={(checked) => updateSetting('notifications.system_updates', checked)}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -312,7 +452,11 @@ const Settings = () => {
                           Important security-related notifications
                         </p>
                       </div>
-                      <Switch id="system-security" defaultChecked />
+                      <Switch 
+                        id="system-security" 
+                        checked={settings.notifications.system_security}
+                        onCheckedChange={(checked) => updateSetting('notifications.system_security', checked)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -445,7 +589,7 @@ const Settings = () => {
                   <div className="space-y-4">
                     <div className="border rounded-md p-4 space-y-3">
                       <div className="flex justify-between items-center">
-                        <h3 className="font-medium">News API Key</h3>
+                        <h3 className="font-medium">OpenAI API Key</h3>
                         <Button variant="ghost" size="sm">Regenerate</Button>
                       </div>
                       <div className="bg-muted/20 p-3 rounded-md font-mono text-sm overflow-x-auto">
@@ -496,18 +640,24 @@ const Settings = () => {
                           Run timeline simulations automatically when data changes
                         </p>
                       </div>
-                      <Switch id="auto-simulation" defaultChecked />
+                      <Switch 
+                        id="auto-simulation" 
+                        checked={settings.auto_simulation}
+                        onCheckedChange={(checked) => updateSetting('auto_simulation', checked)}
+                      />
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="simulation-complexity">Simulation Complexity</Label>
                       <select 
                         id="simulation-complexity" 
+                        value={settings.simulation_complexity}
+                        onChange={(e) => updateSetting('simulation_complexity', e.target.value)}
                         className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
+                        <option value="low">Low (Faster performance, lower accuracy)</option>
                         <option value="standard">Standard (Balanced accuracy/performance)</option>
                         <option value="high">High (Maximum accuracy, slower)</option>
-                        <option value="low">Low (Faster performance, lower accuracy)</option>
                       </select>
                       <p className="text-xs text-muted-foreground">
                         Higher complexity increases prediction accuracy but requires more processing time
@@ -525,6 +675,8 @@ const Settings = () => {
                       <Label htmlFor="default-view">Default Dashboard View</Label>
                       <select 
                         id="default-view" 
+                        value={settings.default_view}
+                        onChange={(e) => updateSetting('default_view', e.target.value)}
                         className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <option value="timeline">Timeline Focus</option>
@@ -540,7 +692,11 @@ const Settings = () => {
                           Use condensed layouts to display more information
                         </p>
                       </div>
-                      <Switch id="compact-view" />
+                      <Switch 
+                        id="compact-view" 
+                        checked={settings.compact_view}
+                        onCheckedChange={(checked) => updateSetting('compact_view', checked)}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -550,7 +706,11 @@ const Settings = () => {
                           Enable or disable interface animations
                         </p>
                       </div>
-                      <Switch id="animations" defaultChecked />
+                      <Switch 
+                        id="animations" 
+                        checked={settings.animations_enabled}
+                        onCheckedChange={(checked) => updateSetting('animations_enabled', checked)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -561,15 +721,32 @@ const Settings = () => {
                   <h3 className="font-medium mb-3">Analysis Preferences</h3>
                   <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="nlp-model">NLP Model Preference</Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="nlp-model">NLP Model Preference</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={testNLPModel}
+                          disabled={testingModel}
+                          className="flex items-center gap-2"
+                        >
+                          {testingModel ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <TestTube className="h-4 w-4" />
+                          )}
+                          Test Model
+                        </Button>
+                      </div>
                       <select 
                         id="nlp-model" 
+                        value={settings.nlp_model}
+                        onChange={(e) => updateSetting('nlp_model', e.target.value)}
                         className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <option value="gpt-4o-mini">GPT-4o-mini (Default)</option>
                         <option value="gpt-4o">GPT-4o (Higher accuracy)</option>
-                        <option value="gpt-4-5">GPT-4.5 (Maximum accuracy)</option>
-                        <option value="custom">Custom Model</option>
+                        <option value="gpt-4.1-2025-04-14">GPT-4.1 (Latest model)</option>
                       </select>
                       <p className="text-xs text-muted-foreground">
                         Select which NLP model to use for text analysis and summarization
@@ -577,13 +754,15 @@ const Settings = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="confidence-threshold">Confidence Threshold</Label>
+                      <Label htmlFor="confidence-threshold">Confidence Threshold: {settings.confidence_threshold}%</Label>
                       <Input 
                         id="confidence-threshold" 
-                        type="number" 
+                        type="range"
                         min="0" 
                         max="100" 
-                        defaultValue="75" 
+                        value={settings.confidence_threshold}
+                        onChange={(e) => updateSetting('confidence_threshold', parseInt(e.target.value))}
+                        className="w-full"
                       />
                       <p className="text-xs text-muted-foreground">
                         Minimum confidence score required for including predictions (0-100)
@@ -660,7 +839,7 @@ const Settings = () => {
                     
                     <div className="bg-muted/20 rounded-md p-4 text-sm">
                       <p>
-                        Last login: <span className="font-mono">2025-05-08 14:22:36 UTC</span><br />
+                        Last login: <span className="font-mono">2025-06-17 13:35:32 UTC</span><br />
                         IP Address: <span className="font-mono">192.168.1.XXX</span><br />
                         Location: <span className="font-mono">San Francisco, CA, USA</span>
                       </p>

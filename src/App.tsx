@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { SettingsProvider } from "@/context/SettingsContext";
 import { ProductionSetupScript } from "@/utils/productionSetupScript";
 import { SetupScript } from "@/utils/setupScript";
 import { useEffect, useState } from "react";
@@ -96,80 +97,82 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <AuthProvider>
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  {/* Setup route - only if setup not complete */}
-                  <Route path="/setup" element={
-                    isSetupComplete ? <Navigate to="/dashboard" replace /> : <LazySetup />
-                  } />
-                  
-                  {/* Root route - redirect based on setup status */}
-                  <Route path="/" element={
-                    isSetupComplete ? <Navigate to="/dashboard" replace /> : <Navigate to="/setup" replace />
-                  } />
-                  
-                  {/* Auth routes - only if setup complete */}
-                  <Route path="/login" element={
-                    isSetupComplete ? <Navigate to="/auth" replace /> : <Navigate to="/setup" replace />
-                  } />
-                  
-                  <Route path="/auth" element={
-                    isSetupComplete ? <LazyAuth /> : <Navigate to="/setup" replace />
-                  } />
-                  
-                  {/* Protected application routes */}
-                  <Route path="/dashboard" element={
-                    isSetupComplete ? (
-                      <ProtectedRoute>
-                        <LazyDashboard />
-                      </ProtectedRoute>
-                    ) : <Navigate to="/setup" replace />
-                  } />
-                  
-                  <Route path="/timeline" element={
-                    isSetupComplete ? (
-                      <ProtectedRoute>
-                        <LazyTimelineViewer />
-                      </ProtectedRoute>
-                    ) : <Navigate to="/setup" replace />
-                  } />
-                  
-                  {/* Handle both /scenario and /scenarios routes */}
-                  <Route path="/scenario" element={
-                    isSetupComplete ? (
-                      <ProtectedRoute>
-                        <LazyScenarioBuilder />
-                      </ProtectedRoute>
-                    ) : <Navigate to="/setup" replace />
-                  } />
-                  
-                  <Route path="/scenarios" element={
-                    isSetupComplete ? (
-                      <ProtectedRoute>
-                        <LazyScenarioBuilder />
-                      </ProtectedRoute>
-                    ) : <Navigate to="/setup" replace />
-                  } />
-                  
-                  <Route path="/data-feeds" element={
-                    isSetupComplete ? (
-                      <ProtectedRoute>
-                        <LazyDataFeeds />
-                      </ProtectedRoute>
-                    ) : <Navigate to="/setup" replace />
-                  } />
-                  
-                  <Route path="/settings" element={
-                    isSetupComplete ? (
-                      <ProtectedRoute>
-                        <LazySettings />
-                      </ProtectedRoute>
-                    ) : <Navigate to="/setup" replace />
-                  } />
-                  
-                  <Route path="*" element={<LazyNotFound />} />
-                </Routes>
-              </Suspense>
+              <SettingsProvider>
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
+                    {/* Setup route - only if setup not complete */}
+                    <Route path="/setup" element={
+                      isSetupComplete ? <Navigate to="/dashboard" replace /> : <LazySetup />
+                    } />
+                    
+                    {/* Root route - redirect based on setup status */}
+                    <Route path="/" element={
+                      isSetupComplete ? <Navigate to="/dashboard" replace /> : <Navigate to="/setup" replace />
+                    } />
+                    
+                    {/* Auth routes - only if setup complete */}
+                    <Route path="/login" element={
+                      isSetupComplete ? <Navigate to="/auth" replace /> : <Navigate to="/setup" replace />
+                    } />
+                    
+                    <Route path="/auth" element={
+                      isSetupComplete ? <LazyAuth /> : <Navigate to="/setup" replace />
+                    } />
+                    
+                    {/* Protected application routes */}
+                    <Route path="/dashboard" element={
+                      isSetupComplete ? (
+                        <ProtectedRoute>
+                          <LazyDashboard />
+                        </ProtectedRoute>
+                      ) : <Navigate to="/setup" replace />
+                    } />
+                    
+                    <Route path="/timeline" element={
+                      isSetupComplete ? (
+                        <ProtectedRoute>
+                          <LazyTimelineViewer />
+                        </ProtectedRoute>
+                      ) : <Navigate to="/setup" replace />
+                    } />
+                    
+                    {/* Handle both /scenario and /scenarios routes */}
+                    <Route path="/scenario" element={
+                      isSetupComplete ? (
+                        <ProtectedRoute>
+                          <LazyScenarioBuilder />
+                        </ProtectedRoute>
+                      ) : <Navigate to="/setup" replace />
+                    } />
+                    
+                    <Route path="/scenarios" element={
+                      isSetupComplete ? (
+                        <ProtectedRoute>
+                          <LazyScenarioBuilder />
+                        </ProtectedRoute>
+                      ) : <Navigate to="/setup" replace />
+                    } />
+                    
+                    <Route path="/data-feeds" element={
+                      isSetupComplete ? (
+                        <ProtectedRoute>
+                          <LazyDataFeeds />
+                        </ProtectedRoute>
+                      ) : <Navigate to="/setup" replace />
+                    } />
+                    
+                    <Route path="/settings" element={
+                      isSetupComplete ? (
+                        <ProtectedRoute>
+                          <LazySettings />
+                        </ProtectedRoute>
+                      ) : <Navigate to="/setup" replace />
+                    } />
+                    
+                    <Route path="*" element={<LazyNotFound />} />
+                  </Routes>
+                </Suspense>
+              </SettingsProvider>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
