@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,9 +21,10 @@ import {
   Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock data for news sources
-const newsSources = [
+const initialNewsSources = [
   { id: 'reuters', name: 'Reuters', enabled: true },
   { id: 'ap', name: 'Associated Press', enabled: true },
   { id: 'bbg', name: 'Bloomberg', enabled: true },
@@ -171,6 +171,18 @@ const DataFeeds = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [activeFeed, setActiveFeed] = useState<'news' | 'social' | 'academic'>('news');
+  const [newsSources, setNewsSources] = useState(initialNewsSources);
+  const [socialSources, setSocialSources] = useState([
+    { id: 'twitter', name: 'Twitter / X', enabled: true },
+    { id: 'reddit', name: 'Reddit', enabled: true },
+    { id: 'youtube', name: 'YouTube', enabled: false },
+  ]);
+  const [academicSources, setAcademicSources] = useState([
+    { id: 'arxiv', name: 'arXiv', enabled: true },
+    { id: 'ssrn', name: 'SSRN', enabled: true },
+    { id: 'pubmed', name: 'PubMed', enabled: false },
+  ]);
+  const { toast } = useToast();
   
   const toggleFilter = (filter: string) => {
     if (activeFilters.includes(filter)) {
@@ -178,6 +190,58 @@ const DataFeeds = () => {
     } else {
       setActiveFilters([...activeFilters, filter]);
     }
+  };
+  
+  const handleRefresh = () => {
+    toast({
+      title: "Refreshing Data Feeds",
+      description: "Fetching latest data from all active sources...",
+    });
+  };
+  
+  const handleConfigure = () => {
+    toast({
+      title: "Configure Data Sources",
+      description: "Opening data source configuration panel...",
+    });
+  };
+  
+  const toggleNewsSource = (sourceId: string) => {
+    setNewsSources(sources => 
+      sources.map(source => 
+        source.id === sourceId 
+          ? { ...source, enabled: !source.enabled }
+          : source
+      )
+    );
+    
+    const source = newsSources.find(s => s.id === sourceId);
+    if (source) {
+      toast({
+        title: `${source.name} ${!source.enabled ? 'Enabled' : 'Disabled'}`,
+        description: `${source.name} data feed has been ${!source.enabled ? 'activated' : 'deactivated'}.`,
+      });
+    }
+  };
+  
+  const toggleSocialSource = (sourceId: string) => {
+    setSocialSources(sources => 
+      sources.map(source => 
+        source.id === sourceId 
+          ? { ...source, enabled: !source.enabled }
+          : source
+      )
+    );
+  };
+  
+  const toggleAcademicSource = (sourceId: string) => {
+    setAcademicSources(sources => 
+      sources.map(source => 
+        source.id === sourceId 
+          ? { ...source, enabled: !source.enabled }
+          : source
+      )
+    );
   };
   
   const filterItems = (items: any[], type: 'news' | 'social' | 'academic') => {
@@ -251,11 +315,11 @@ const DataFeeds = () => {
                 </button>
               )}
             </div>
-            <Button size="sm" variant="outline" className="flex items-center gap-1">
+            <Button size="sm" variant="outline" className="flex items-center gap-1" onClick={handleRefresh}>
               <RefreshCw size={16} />
               <span>Refresh</span>
             </Button>
-            <Button size="sm" variant="outline" className="flex items-center gap-1">
+            <Button size="sm" variant="outline" className="flex items-center gap-1" onClick={handleConfigure}>
               <Settings size={16} />
               <span>Configure</span>
             </Button>
@@ -322,7 +386,7 @@ const DataFeeds = () => {
             <Card>
               <CardHeader className="pb-2 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-mono">Active Sources</CardTitle>
-                <Button variant="ghost" size="sm" className="h-8 text-xs">
+                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={handleConfigure}>
                   Edit All
                 </Button>
               </CardHeader>
@@ -332,7 +396,10 @@ const DataFeeds = () => {
                     {newsSources.map(source => (
                       <div key={source.id} className="flex items-center justify-between">
                         <span className="text-sm">{source.name}</span>
-                        <Switch checked={source.enabled} />
+                        <Switch 
+                          checked={source.enabled} 
+                          onCheckedChange={() => toggleNewsSource(source.id)}
+                        />
                       </div>
                     ))}
                   </>
@@ -340,35 +407,29 @@ const DataFeeds = () => {
                 
                 {activeFeed === 'social' && (
                   <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Twitter / X</span>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Reddit</span>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">YouTube</span>
-                      <Switch />
-                    </div>
+                    {socialSources.map(source => (
+                      <div key={source.id} className="flex items-center justify-between">
+                        <span className="text-sm">{source.name}</span>
+                        <Switch 
+                          checked={source.enabled} 
+                          onCheckedChange={() => toggleSocialSource(source.id)}
+                        />
+                      </div>
+                    ))}
                   </>
                 )}
                 
                 {activeFeed === 'academic' && (
                   <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">arXiv</span>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">SSRN</span>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">PubMed</span>
-                      <Switch />
-                    </div>
+                    {academicSources.map(source => (
+                      <div key={source.id} className="flex items-center justify-between">
+                        <span className="text-sm">{source.name}</span>
+                        <Switch 
+                          checked={source.enabled} 
+                          onCheckedChange={() => toggleAcademicSource(source.id)}
+                        />
+                      </div>
+                    ))}
                   </>
                 )}
               </CardContent>
