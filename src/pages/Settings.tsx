@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/context/SettingsContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +27,12 @@ import {
   Check,
   FileText,
   TestTube,
-  Loader2
+  Loader2,
+  BookOpen,
+  Eye,
+  EyeOff,
+  Copy,
+  Key
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -36,6 +42,7 @@ const Settings = () => {
   const { toast } = useToast();
   const [testingModel, setTestingModel] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showSecurityGuide, setShowSecurityGuide] = useState(false);
   
   const handleSaveSettings = async () => {
     if (!settings) return;
@@ -614,7 +621,97 @@ const Settings = () => {
                         <AlertTriangle className="h-5 w-5 text-yellow-500" />
                         <span className="text-sm">Remember to secure your API keys</span>
                       </div>
-                      <Button variant="link" size="sm">API Security Guide</Button>
+                      <Dialog open={showSecurityGuide} onOpenChange={setShowSecurityGuide}>
+                        <DialogTrigger asChild>
+                          <Button variant="link" size="sm">
+                            <BookOpen className="h-4 w-4 mr-2" />
+                            API Security Guide
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <Shield className="h-5 w-5 text-cyber" />
+                              API Security Guide
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-6 mt-4">
+                            <div className="space-y-4">
+                              <div className="bg-red-950/20 border border-red-500/30 rounded-md p-4">
+                                <h3 className="font-semibold text-red-400 mb-2 flex items-center gap-2">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  Critical Security Practices
+                                </h3>
+                                <ul className="text-sm space-y-1 text-red-200">
+                                  <li>• Never share API keys in public repositories</li>
+                                  <li>• Rotate keys regularly (every 90 days recommended)</li>
+                                  <li>• Use environment variables, never hardcode keys</li>
+                                  <li>• Monitor API usage for unusual activity</li>
+                                </ul>
+                              </div>
+
+                              <div>
+                                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                                  <Key className="h-4 w-4" />
+                                  API Key Management
+                                </h3>
+                                <div className="space-y-3 text-sm">
+                                  <div className="border rounded-md p-3">
+                                    <h4 className="font-medium mb-2">✓ Secure Storage</h4>
+                                    <p className="text-muted-foreground">Store keys in Supabase secrets or secure environment variables. Never commit them to version control.</p>
+                                  </div>
+                                  <div className="border rounded-md p-3">
+                                    <h4 className="font-medium mb-2">✓ Access Control</h4>
+                                    <p className="text-muted-foreground">Limit API key permissions to minimum required scope. Use separate keys for different services.</p>
+                                  </div>
+                                  <div className="border rounded-md p-3">
+                                    <h4 className="font-medium mb-2">✓ Monitoring</h4>
+                                    <p className="text-muted-foreground">Regularly review API usage logs and set up alerts for unusual activity patterns.</p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <h3 className="font-semibold mb-3">Best Practices Checklist</h3>
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <Check className="h-4 w-4 text-green-500" />
+                                    <span>Use HTTPS for all API requests</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Check className="h-4 w-4 text-green-500" />
+                                    <span>Implement rate limiting on your endpoints</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Check className="h-4 w-4 text-green-500" />
+                                    <span>Validate and sanitize all input data</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Check className="h-4 w-4 text-green-500" />
+                                    <span>Log security events and failed attempts</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Check className="h-4 w-4 text-green-500" />
+                                    <span>Use API key rotation schedules</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="bg-blue-950/20 border border-blue-500/30 rounded-md p-4">
+                                <h3 className="font-semibold text-blue-400 mb-2">Emergency Procedures</h3>
+                                <p className="text-sm text-blue-200 mb-2">If you suspect a key has been compromised:</p>
+                                <ol className="text-sm space-y-1 text-blue-200 list-decimal list-inside">
+                                  <li>Immediately revoke the compromised key</li>
+                                  <li>Generate a new key with updated permissions</li>
+                                  <li>Review access logs for unauthorized usage</li>
+                                  <li>Update all applications using the old key</li>
+                                  <li>Monitor for continued suspicious activity</li>
+                                </ol>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
                 </CardContent>
