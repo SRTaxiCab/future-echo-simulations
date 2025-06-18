@@ -153,7 +153,16 @@ const App = () => {
                       ) : <Navigate to="/setup" replace />
                     } />
                     
+                    {/* Data feeds routes - handle both /data-feeds and /feeds */}
                     <Route path="/data-feeds" element={
+                      isSetupComplete ? (
+                        <ProtectedRoute>
+                          <LazyDataFeeds />
+                        </ProtectedRoute>
+                      ) : <Navigate to="/setup" replace />
+                    } />
+                    
+                    <Route path="/feeds" element={
                       isSetupComplete ? (
                         <ProtectedRoute>
                           <LazyDataFeeds />
