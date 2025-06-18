@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { 
   Newspaper, 
   Twitter, 
@@ -182,6 +183,7 @@ const DataFeeds = () => {
     { id: 'ssrn', name: 'SSRN', enabled: true },
     { id: 'pubmed', name: 'PubMed', enabled: false },
   ]);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const { toast } = useToast();
   
   const toggleFilter = (filter: string) => {
@@ -200,10 +202,7 @@ const DataFeeds = () => {
   };
   
   const handleConfigure = () => {
-    toast({
-      title: "Configure Data Sources",
-      description: "Opening data source configuration panel...",
-    });
+    setIsConfigOpen(true);
   };
   
   const toggleNewsSource = (sourceId: string) => {
@@ -319,10 +318,120 @@ const DataFeeds = () => {
               <RefreshCw size={16} />
               <span>Refresh</span>
             </Button>
-            <Button size="sm" variant="outline" className="flex items-center gap-1" onClick={handleConfigure}>
-              <Settings size={16} />
-              <span>Configure</span>
-            </Button>
+            
+            {/* Configure button with Sheet */}
+            <Sheet open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+              <SheetTrigger asChild>
+                <Button size="sm" variant="outline" className="flex items-center gap-1" onClick={handleConfigure}>
+                  <Settings size={16} />
+                  <span>Configure</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-[400px] sm:w-[540px]">
+                <SheetHeader>
+                  <SheetTitle className="font-mono">Data Source Configuration</SheetTitle>
+                  <SheetDescription>
+                    Configure which data sources are active and manage API settings for each feed type.
+                  </SheetDescription>
+                </SheetHeader>
+                
+                <div className="mt-6 space-y-6">
+                  {/* News Sources Configuration */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b pb-2">
+                      <Newspaper className="h-5 w-5 text-cyber" />
+                      <h3 className="text-lg font-semibold">News Sources</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {newsSources.map(source => (
+                        <div key={source.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Switch 
+                              checked={source.enabled} 
+                              onCheckedChange={() => toggleNewsSource(source.id)}
+                            />
+                            <Label className="font-medium">{source.name}</Label>
+                          </div>
+                          <Badge variant={source.enabled ? "default" : "outline"}>
+                            {source.enabled ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Social Media Sources Configuration */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b pb-2">
+                      <Twitter className="h-5 w-5 text-cyan-500" />
+                      <h3 className="text-lg font-semibold">Social Media Sources</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {socialSources.map(source => (
+                        <div key={source.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Switch 
+                              checked={source.enabled} 
+                              onCheckedChange={() => toggleSocialSource(source.id)}
+                            />
+                            <Label className="font-medium">{source.name}</Label>
+                          </div>
+                          <Badge variant={source.enabled ? "default" : "outline"}>
+                            {source.enabled ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Academic Sources Configuration */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b pb-2">
+                      <FileText className="h-5 w-5 text-neural" />
+                      <h3 className="text-lg font-semibold">Academic Sources</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {academicSources.map(source => (
+                        <div key={source.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Switch 
+                              checked={source.enabled} 
+                              onCheckedChange={() => toggleAcademicSource(source.id)}
+                            />
+                            <Label className="font-medium">{source.name}</Label>
+                          </div>
+                          <Badge variant={source.enabled ? "default" : "outline"}>
+                            {source.enabled ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Configuration Actions */}
+                  <div className="flex gap-2 pt-4 border-t">
+                    <Button 
+                      className="flex-1" 
+                      onClick={() => {
+                        toast({
+                          title: "Configuration Saved",
+                          description: "Data source settings have been updated successfully.",
+                        });
+                        setIsConfigOpen(false);
+                      }}
+                    >
+                      Save Changes
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsConfigOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
         
