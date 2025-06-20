@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/context/SettingsContext';
 import { supabase } from '@/integrations/supabase/client';
+import { AddDataSourceDialog } from '@/components/AddDataSourceDialog';
 import { 
   Bell, 
   Globe, 
@@ -43,6 +44,7 @@ const Settings = () => {
   const [testingModel, setTestingModel] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showSecurityGuide, setShowSecurityGuide] = useState(false);
+  const [showAddDataSource, setShowAddDataSource] = useState(false);
   
   const handleSaveSettings = async () => {
     if (!settings) return;
@@ -577,7 +579,7 @@ const Settings = () => {
                         <p className="text-sm text-muted-foreground mb-4">
                           Connect additional APIs or data sources to expand your intelligence capabilities
                         </p>
-                        <Button>
+                        <Button onClick={() => setShowAddDataSource(true)}>
                           Connect New Source
                         </Button>
                       </div>
@@ -950,6 +952,12 @@ const Settings = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Add Data Source Dialog */}
+        <AddDataSourceDialog 
+          open={showAddDataSource} 
+          onOpenChange={setShowAddDataSource} 
+        />
       </div>
     </AppLayout>
   );
