@@ -7,6 +7,7 @@ import { StatusCard } from '@/components/StatusCard';
 import { TimelineChart } from '@/components/TimelineChart';
 import { ClassifiedContent } from '@/components/ClassifiedContent';
 import { AdminPanel } from '@/components/AdminPanel';
+import { HelpButton } from '@/components/HelpButton';
 import { Card } from '@/components/ui/card';
 import { useUserRole } from '@/hooks/useUserRole';
 import { 
@@ -56,8 +57,11 @@ const Dashboard = () => {
       <div className="p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <h1 className="text-2xl font-bold mb-2 md:mb-0">Intelligence Dashboard</h1>
-          <div className="text-sm text-muted-foreground font-mono">
-            Last updated: <span className="text-cyber">05-08-2025 14:32:18 UTC</span>
+          <div className="flex items-center gap-4">
+            <HelpButton />
+            <div className="text-sm text-muted-foreground font-mono">
+              Last updated: <span className="text-cyber">05-08-2025 14:32:18 UTC</span>
+            </div>
           </div>
         </div>
         
