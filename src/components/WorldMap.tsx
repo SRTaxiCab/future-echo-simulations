@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -88,12 +89,16 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [mapInitialized, setMapInitialized] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [initError, setInitError] = useState<string>('');
 
   // Load token from localStorage on mount
   useEffect(() => {
     const savedToken = localStorage.getItem('mapbox-token');
-    if (savedToken) {
+    console.log('Loading saved token:', savedToken ? 'Token found' : 'No token found');
+    if (savedToken && savedToken.trim()) {
       setMapboxToken(savedToken);
+      setShowTokenInput(false);
     } else {
       setShowTokenInput(true);
     }
@@ -101,17 +106,31 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
 
   // Initialize map when token is available
   useEffect(() => {
-    if (mapboxToken && !mapInitialized) {
+    if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing) {
+      console.log('Attempting to initialize map with token');
       initializeMap();
     }
-  }, [mapboxToken, mapInitialized]);
+  }, [mapboxToken, mapInitialized, isInitializing]);
 
-  const initializeMap = () => {
-    if (!mapContainer.current || !mapboxToken || mapInitialized) return;
+  const initializeMap = async () => {
+    if (!mapContainer.current || !mapboxToken || mapInitialized || isInitializing) {
+      console.log('Map initialization blocked:', {
+        hasContainer: !!mapContainer.current,
+        hasToken: !!mapboxToken,
+        isInitialized: mapInitialized,
+        isInitializing: isInitializing
+      });
+      return;
+    }
+
+    setIsInitializing(true);
+    setInitError('');
 
     try {
-      mapboxgl.accessToken = mapboxToken;
+      console.log('Setting Mapbox access token');
+      mapboxgl.accessToken = mapboxToken.trim();
       
+      console.log('Creating new Mapbox map');
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/dark-v11',
@@ -129,10 +148,17 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
         'top-right'
       );
 
-      // Add atmosphere effects
-      map.current.on('style.load', () => {
+      // Handle successful load
+      map.current.on('load', () => {
+        console.log('Map loaded successfully');
+        setMapInitialized(true);
+        setIsInitializing(false);
+        setShowTokenInput(false);
+        setInitError('');
+
         if (!map.current) return;
-        
+
+        // Add atmosphere effects
         map.current.setFog({
           color: 'rgb(30, 30, 50)',
           'high-color': 'rgb(50, 50, 80)',
@@ -179,38 +205,65 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
         });
       });
 
-      map.current.on('load', () => {
-        setMapInitialized(true);
-        setShowTokenInput(false);
-        console.log('Mapbox map initialized successfully');
-      });
-
+      // Handle errors
       map.current.on('error', (e) => {
         console.error('Mapbox error:', e);
+        setInitError(`Map error: ${e.error?.message || 'Unknown error'}`);
         setMapInitialized(false);
+        setIsInitializing(false);
         setShowTokenInput(true);
       });
 
     } catch (error) {
       console.error('Failed to initialize Mapbox:', error);
+      setInitError(`Initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setMapInitialized(false);
+      setIsInitializing(false);
       setShowTokenInput(true);
     }
   };
 
   const handleTokenSubmit = () => {
-    if (mapboxToken.trim()) {
+    const trimmedToken = mapboxToken.trim();
+    console.log('Submitting token:', trimmedToken ? 'Token provided' : 'No token');
+    
+    if (trimmedToken) {
+      // Validate token format
+      if (!trimmedToken.startsWith('pk.')) {
+        setInitError('Invalid token format. Mapbox tokens should start with "pk."');
+        return;
+      }
+      
       // Save token to localStorage
-      localStorage.setItem('mapbox-token', mapboxToken.trim());
-      initializeMap();
+      localStorage.setItem('mapbox-token', trimmedToken);
+      console.log('Token saved to localStorage');
+      setInitError('');
+      
+      // Reset map state and initialize
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+      setMapInitialized(false);
+      setIsInitializing(false);
+      
+      // Trigger initialization
+      setTimeout(() => {
+        initializeMap();
+      }, 100);
+    } else {
+      setInitError('Please enter a valid Mapbox token');
     }
   };
 
   const handleTokenReset = () => {
+    console.log('Resetting token');
     localStorage.removeItem('mapbox-token');
     setMapboxToken('');
     setShowTokenInput(true);
     setMapInitialized(false);
+    setIsInitializing(false);
+    setInitError('');
     if (map.current) {
       map.current.remove();
       map.current = null;
@@ -220,12 +273,13 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
   useEffect(() => {
     return () => {
       if (map.current) {
+        console.log('Cleaning up map');
         map.current.remove();
       }
     };
   }, []);
 
-  if (showTokenInput || !mapInitialized) {
+  if (showTokenInput || (!mapInitialized && !isInitializing)) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -237,12 +291,19 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              {mapInitialized ? 'Map is loading...' : 'To display the interactive world map, please enter your Mapbox access token.'}
+              To display the interactive world map, please enter your Mapbox access token.
               You can get one for free at{' '}
               <a href="https://mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-cyber underline">
                 mapbox.com
               </a>
             </p>
+            
+            {initError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
+                {initError}
+              </div>
+            )}
+            
             <div className="space-y-2">
               <div className="flex gap-2">
                 <div className="flex-1 relative">
@@ -251,6 +312,11 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
                     value={mapboxToken}
                     onChange={(e) => setMapboxToken(e.target.value)}
                     type={showToken ? "text" : "password"}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleTokenSubmit();
+                      }
+                    }}
                   />
                   <Button
                     variant="ghost"
@@ -261,8 +327,11 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
                     {showToken ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                   </Button>
                 </div>
-                <Button onClick={handleTokenSubmit} disabled={!mapboxToken.trim()}>
-                  Initialize Map
+                <Button 
+                  onClick={handleTokenSubmit} 
+                  disabled={!mapboxToken.trim() || isInitializing}
+                >
+                  {isInitializing ? 'Initializing...' : 'Initialize Map'}
                 </Button>
               </div>
               {mapboxToken && localStorage.getItem('mapbox-token') && (
@@ -273,6 +342,27 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
                   </Button>
                 </div>
               )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isInitializing) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="font-mono flex items-center">
+            <Globe className="h-5 w-5 mr-2" />
+            Global Events Map
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyber mx-auto mb-2"></div>
+              <p className="text-sm text-muted-foreground">Initializing map...</p>
             </div>
           </div>
         </CardContent>
