@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Globe, MapPin, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Globe, MapPin, AlertTriangle, TrendingUp, Eye, EyeOff } from 'lucide-react';
 
 // Sample global events data with geographical coordinates
 const globalEvents = [
@@ -86,96 +85,147 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapboxToken, setMapboxToken] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<typeof globalEvents[0] | null>(null);
-  const [showTokenInput, setShowTokenInput] = useState(true);
+  const [showTokenInput, setShowTokenInput] = useState(false);
+  const [mapInitialized, setMapInitialized] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+
+  // Load token from localStorage on mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem('mapbox-token');
+    if (savedToken) {
+      setMapboxToken(savedToken);
+    } else {
+      setShowTokenInput(true);
+    }
+  }, []);
+
+  // Initialize map when token is available
+  useEffect(() => {
+    if (mapboxToken && !mapInitialized) {
+      initializeMap();
+    }
+  }, [mapboxToken, mapInitialized]);
 
   const initializeMap = () => {
-    if (!mapContainer.current || !mapboxToken) return;
+    if (!mapContainer.current || !mapboxToken || mapInitialized) return;
 
-    mapboxgl.accessToken = mapboxToken;
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
-      projection: 'globe' as any,
-      zoom: 1.5,
-      center: [0, 20],
-      pitch: 0,
-    });
-
-    // Add navigation controls
-    map.current.addControl(
-      new mapboxgl.NavigationControl({
-        visualizePitch: true,
-      }),
-      'top-right'
-    );
-
-    // Add atmosphere effects
-    map.current.on('style.load', () => {
-      if (!map.current) return;
+    try {
+      mapboxgl.accessToken = mapboxToken;
       
-      map.current.setFog({
-        color: 'rgb(30, 30, 50)',
-        'high-color': 'rgb(50, 50, 80)',
-        'horizon-blend': 0.3,
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/dark-v11',
+        projection: 'globe' as any,
+        zoom: 1.5,
+        center: [0, 20],
+        pitch: 0,
       });
 
-      // Add event markers
-      globalEvents.forEach((event) => {
-        const el = document.createElement('div');
-        el.className = 'marker';
-        el.style.cssText = `
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          cursor: pointer;
-          border: 2px solid white;
-          background-color: ${
-            event.impact === 'high' ? '#ef4444' :
-            event.impact === 'medium' ? '#f59e0b' : '#10b981'
-          };
-          animation: pulse 2s infinite;
-        `;
+      // Add navigation controls
+      map.current.addControl(
+        new mapboxgl.NavigationControl({
+          visualizePitch: true,
+        }),
+        'top-right'
+      );
 
-        // Add click event
-        el.addEventListener('click', () => {
-          setSelectedEvent(event);
+      // Add atmosphere effects
+      map.current.on('style.load', () => {
+        if (!map.current) return;
+        
+        map.current.setFog({
+          color: 'rgb(30, 30, 50)',
+          'high-color': 'rgb(50, 50, 80)',
+          'horizon-blend': 0.3,
         });
 
-        // Create popup
-        const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-          <div style="color: black; font-size: 12px;">
-            <h4 style="margin: 0 0 5px 0; font-weight: bold;">${event.title}</h4>
-            <p style="margin: 0 0 3px 0;"><strong>Country:</strong> ${event.country}</p>
-            <p style="margin: 0 0 3px 0;"><strong>Probability:</strong> ${event.probability}%</p>
-            <p style="margin: 0 0 3px 0;"><strong>Impact:</strong> ${event.impact}</p>
-            <p style="margin: 0;">${event.description}</p>
-          </div>
-        `);
+        // Add event markers
+        globalEvents.forEach((event) => {
+          const el = document.createElement('div');
+          el.className = 'marker';
+          el.style.cssText = `
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            background-color: ${
+              event.impact === 'high' ? '#ef4444' :
+              event.impact === 'medium' ? '#f59e0b' : '#10b981'
+            };
+            animation: pulse 2s infinite;
+          `;
 
-        new mapboxgl.Marker(el)
-          .setLngLat(event.coordinates as [number, number])
-          .setPopup(popup)
-          .addTo(map.current!);
+          // Add click event
+          el.addEventListener('click', () => {
+            setSelectedEvent(event);
+          });
+
+          // Create popup
+          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+            <div style="color: black; font-size: 12px;">
+              <h4 style="margin: 0 0 5px 0; font-weight: bold;">${event.title}</h4>
+              <p style="margin: 0 0 3px 0;"><strong>Country:</strong> ${event.country}</p>
+              <p style="margin: 0 0 3px 0;"><strong>Probability:</strong> ${event.probability}%</p>
+              <p style="margin: 0 0 3px 0;"><strong>Impact:</strong> ${event.impact}</p>
+              <p style="margin: 0;">${event.description}</p>
+            </div>
+          `);
+
+          new mapboxgl.Marker(el)
+            .setLngLat(event.coordinates as [number, number])
+            .setPopup(popup)
+            .addTo(map.current!);
+        });
       });
-    });
 
-    setShowTokenInput(false);
+      map.current.on('load', () => {
+        setMapInitialized(true);
+        setShowTokenInput(false);
+        console.log('Mapbox map initialized successfully');
+      });
+
+      map.current.on('error', (e) => {
+        console.error('Mapbox error:', e);
+        setMapInitialized(false);
+        setShowTokenInput(true);
+      });
+
+    } catch (error) {
+      console.error('Failed to initialize Mapbox:', error);
+      setMapInitialized(false);
+      setShowTokenInput(true);
+    }
   };
 
   const handleTokenSubmit = () => {
     if (mapboxToken.trim()) {
+      // Save token to localStorage
+      localStorage.setItem('mapbox-token', mapboxToken.trim());
       initializeMap();
+    }
+  };
+
+  const handleTokenReset = () => {
+    localStorage.removeItem('mapbox-token');
+    setMapboxToken('');
+    setShowTokenInput(true);
+    setMapInitialized(false);
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
     }
   };
 
   useEffect(() => {
     return () => {
-      map.current?.remove();
+      if (map.current) {
+        map.current.remove();
+      }
     };
   }, []);
 
-  if (showTokenInput) {
+  if (showTokenInput || !mapInitialized) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -187,22 +237,42 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              To display the interactive world map, please enter your Mapbox access token.
+              {mapInitialized ? 'Map is loading...' : 'To display the interactive world map, please enter your Mapbox access token.'}
               You can get one for free at{' '}
               <a href="https://mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-cyber underline">
                 mapbox.com
               </a>
             </p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter Mapbox access token"
-                value={mapboxToken}
-                onChange={(e) => setMapboxToken(e.target.value)}
-                type="password"
-              />
-              <Button onClick={handleTokenSubmit}>
-                Initialize Map
-              </Button>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Input
+                    placeholder="Enter Mapbox access token (pk.ey...)"
+                    value={mapboxToken}
+                    onChange={(e) => setMapboxToken(e.target.value)}
+                    type={showToken ? "text" : "password"}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1 h-6 w-6 p-0"
+                    onClick={() => setShowToken(!showToken)}
+                  >
+                    {showToken ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </Button>
+                </div>
+                <Button onClick={handleTokenSubmit} disabled={!mapboxToken.trim()}>
+                  Initialize Map
+                </Button>
+              </div>
+              {mapboxToken && localStorage.getItem('mapbox-token') && (
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>Token saved locally</span>
+                  <Button variant="ghost" size="sm" onClick={handleTokenReset}>
+                    Reset Token
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -217,10 +287,15 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="font-mono text-lg flex items-center">
-                <Globe className="h-5 w-5 mr-2" />
-                Global Impact Visualization
-              </CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle className="font-mono text-lg flex items-center">
+                  <Globe className="h-5 w-5 mr-2" />
+                  Global Impact Visualization
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={handleTokenReset}>
+                  Reset Token
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div 
