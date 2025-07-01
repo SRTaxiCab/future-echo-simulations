@@ -104,11 +104,14 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
     }
   }, []);
 
-  // Initialize map when token is available
+  // Initialize map when token is available and container is ready
   useEffect(() => {
-    if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing) {
+    if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing && mapContainer.current) {
       console.log('Attempting to initialize map with token');
-      initializeMap();
+      // Small delay to ensure DOM is fully ready
+      setTimeout(() => {
+        initializeMap();
+      }, 100);
     }
   }, [mapboxToken, mapInitialized, isInitializing]);
 
