@@ -92,26 +92,54 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
   const [isInitializing, setIsInitializing] = useState(false);
   const [initError, setInitError] = useState<string>('');
 
-  // Load token from localStorage on mount
+  // Load token from localStorage on mount and set the provided token
   useEffect(() => {
+    // First check for the provided token
+    const providedToken = 'pk.eyJ1Ijoic2FudGFyb3NhdGF4aSIsImEiOiJjbWM1aGtvZGUwY2xsMmlwdzljMTBuYXlvIn0.On1bfH_VMOiv1SzvJThOVQ';
     const savedToken = localStorage.getItem('mapbox-token');
-    console.log('Loading saved token:', savedToken ? 'Token found' : 'No token found');
-    if (savedToken && savedToken.trim()) {
+    
+    console.log('Checking tokens on mount:', {
+      hasProvidedToken: !!providedToken,
+      hasSavedToken: !!savedToken,
+      savedTokenMatches: savedToken === providedToken
+    });
+
+    if (providedToken && savedToken !== providedToken) {
+      console.log('Using provided token and saving it');
+      localStorage.setItem('mapbox-token', providedToken);
+      setMapboxToken(providedToken);
+      setShowTokenInput(false);
+    } else if (savedToken && savedToken.trim()) {
+      console.log('Using saved token');
       setMapboxToken(savedToken);
       setShowTokenInput(false);
     } else {
+      console.log('No valid token found, showing input');
       setShowTokenInput(true);
     }
   }, []);
 
   // Initialize map when token is available and container is ready
   useEffect(() => {
+    console.log('Map init effect triggered:', {
+      hasToken: !!mapboxToken,
+      tokenLength: mapboxToken?.length,
+      hasContainer: !!mapContainer.current,
+      isInitialized: mapInitialized,
+      isInitializing: isInitializing
+    });
+    
     if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing && mapContainer.current) {
-      console.log('Attempting to initialize map with token');
-      // Small delay to ensure DOM is fully ready
+      console.log('All conditions met, initializing map in 200ms');
+      // Longer delay to ensure DOM is fully ready
       setTimeout(() => {
-        initializeMap();
-      }, 100);
+        if (mapContainer.current) {
+          console.log('Container still available, proceeding with initialization');
+          initializeMap();
+        } else {
+          console.log('Container no longer available, skipping initialization');
+        }
+      }, 200);
     }
   }, [mapboxToken, mapInitialized, isInitializing]);
 
@@ -242,7 +270,7 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
       console.log('Token saved to localStorage');
       setInitError('');
       
-      // Reset map state and initialize
+      // Reset map state and initialize immediately if container is ready
       if (map.current) {
         map.current.remove();
         map.current = null;
@@ -250,10 +278,16 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
       setMapInitialized(false);
       setIsInitializing(false);
       
-      // Trigger initialization
-      setTimeout(() => {
-        initializeMap();
-      }, 100);
+      // Check if container is available and initialize immediately
+      console.log('Checking container availability:', !!mapContainer.current);
+      if (mapContainer.current) {
+        console.log('Container available, initializing immediately');
+        setTimeout(() => {
+          initializeMap();
+        }, 300);
+      } else {
+        console.log('Container not available, token saved for later initialization');
+      }
     } else {
       setInitError('Please enter a valid Mapbox token');
     }
