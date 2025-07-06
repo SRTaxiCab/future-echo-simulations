@@ -13,6 +13,7 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
   useEffect(() => {
     console.log('Map init effect triggered:', {
       hasToken: !!mapboxToken,
+      tokenValue: mapboxToken ? mapboxToken.substring(0, 10) + '...' : 'none',
       tokenLength: mapboxToken?.length,
       hasContainer: !!mapContainer.current,
       isInitialized: mapInitialized,
@@ -20,19 +21,27 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
     });
     
     if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing) {
-      // Use a slight delay to ensure tab content is fully rendered
+      let attempts = 0;
+      const maxAttempts = 20; // Increased attempts
+      
       const checkContainer = () => {
+        attempts++;
+        console.log(`Attempt ${attempts}: Container available:`, !!mapContainer.current);
+        
         if (mapContainer.current) {
           console.log('Container found, initializing map');
           initializeMap();
+        } else if (attempts < maxAttempts) {
+          console.log(`Container not ready, retrying in 200ms (attempt ${attempts})`);
+          setTimeout(checkContainer, 200); // Longer delay
         } else {
-          console.log('Container not ready, retrying in 100ms');
-          setTimeout(checkContainer, 100);
+          console.log('Max attempts reached, container still not available');
+          console.log('Container element:', mapContainer.current);
         }
       };
       
-      // Start checking immediately
-      checkContainer();
+      // Start checking with initial delay to allow DOM to render
+      setTimeout(checkContainer, 100);
     }
   }, [mapboxToken, mapInitialized, isInitializing]);
 

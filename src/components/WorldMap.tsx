@@ -51,7 +51,8 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
 
   const displayError = initError || mapInitError;
 
-  if (showTokenInput || (!mapInitialized && !isInitializing)) {
+  // Render token setup panel
+  if (showTokenInput || (!mapInitialized && !isInitializing && mapboxToken && !displayError)) {
     return (
       <TokenSetupPanel
         className={className}
@@ -67,10 +68,12 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
     );
   }
 
+  // Render loading panel
   if (isInitializing) {
     return <LoadingPanel className={className} />;
   }
 
+  // Render main map interface
   return (
     <div className={className}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
