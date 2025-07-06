@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { 
   LayoutDashboard, 
   Clock, 
+  Globe,
   Layers, 
   Database, 
   Settings,
@@ -36,6 +37,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       name: 'Timeline Viewer', 
       path: '/timeline', 
       icon: <Clock className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Global Map', 
+      path: '/map', 
+      icon: <Globe className="h-5 w-5" /> 
     },
     { 
       name: 'Scenario Builder', 

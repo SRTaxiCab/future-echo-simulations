@@ -4,12 +4,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Key, 
   Users, 
-  Database
+  Database,
+  Globe
 } from 'lucide-react';
 import { UserProfileForm } from '@/components/UserProfileForm';
 import { ApiKeyForm } from '@/components/ApiKeyForm';
 import { DataSourcesProvider } from '@/context/DataSourcesContext';
 import { DataSourcesPanel } from '@/components/DataSourcesPanel';
+import { MapboxTokenSettings } from '@/components/MapboxTokenSettings';
 import { AppLayout } from '@/components/AppLayout';
 
 interface SettingsProps {
@@ -39,6 +41,10 @@ const Settings: React.FC<SettingsProps> = ({  }) => {
               <Key className="mr-2 h-4 w-4" />
               API Keys
             </TabsTrigger>
+            <TabsTrigger value="mapbox" onClick={() => setActiveTab('mapbox')}>
+              <Globe className="mr-2 h-4 w-4" />
+              Mapbox
+            </TabsTrigger>
             <TabsTrigger value="data-sources" onClick={() => setActiveTab('data-sources')}>
               <Database className="mr-2 h-4 w-4" />
               Data Sources
@@ -49,6 +55,9 @@ const Settings: React.FC<SettingsProps> = ({  }) => {
           </TabsContent>
           <TabsContent value="api-keys" className="space-y-4 mt-4">
             <ApiKeyForm />
+          </TabsContent>
+          <TabsContent value="mapbox" className="space-y-4 mt-4">
+            <MapboxTokenSettings />
           </TabsContent>
           <TabsContent value="data-sources" className="space-y-4 mt-4">
             <DataSourcesProvider>

@@ -15,6 +15,7 @@ import { LoadingFallback } from "./components/LoadingFallback";
 import {
   LazyDashboard,
   LazyTimelineViewer,
+  LazyMap,
   LazyScenarioBuilder,
   LazyDataFeeds,
   LazySettings,
@@ -132,6 +133,14 @@ const App = () => {
                       isSetupComplete ? (
                         <ProtectedRoute>
                           <LazyTimelineViewer />
+                        </ProtectedRoute>
+                      ) : <Navigate to="/setup" replace />
+                    } />
+                    
+                    <Route path="/map" element={
+                      isSetupComplete ? (
+                        <ProtectedRoute>
+                          <LazyMap />
                         </ProtectedRoute>
                       ) : <Navigate to="/setup" replace />
                     } />

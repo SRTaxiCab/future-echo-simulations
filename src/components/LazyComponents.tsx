@@ -5,6 +5,7 @@ import { ComponentType } from 'react';
 // Lazy load all main pages for code splitting
 export const LazyDashboard = lazy(() => import('../pages/Dashboard'));
 export const LazyTimelineViewer = lazy(() => import('../pages/TimelineViewer'));
+export const LazyMap = lazy(() => import('../pages/Map'));
 export const LazyScenarioBuilder = lazy(() => import('../pages/ScenarioBuilder'));
 export const LazyDataFeeds = lazy(() => import('../pages/DataFeeds'));
 export const LazySettings = lazy(() => import('../pages/Settings'));
