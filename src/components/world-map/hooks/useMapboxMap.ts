@@ -19,31 +19,19 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
       isInitializing: isInitializing
     });
     
-    if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing) {
-      console.log('All conditions met, checking for container...');
-      // Use multiple attempts to find the container
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      const tryInitialize = () => {
-        attempts++;
-        console.log(`Attempt ${attempts}: Container available:`, !!mapContainer.current);
-        
-        if (mapContainer.current) {
-          console.log('Container found, initializing map');
-          initializeMap();
-        } else if (attempts < maxAttempts) {
-          console.log(`Container not ready, retrying in 100ms (attempt ${attempts})`);
-          setTimeout(tryInitialize, 100);
-        } else {
-          console.log('Max attempts reached, container still not available');
-        }
-      };
-      
-      // Start trying immediately
-      tryInitialize();
+    if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing && mapContainer.current) {
+      console.log('All conditions met, initializing map');
+      initializeMap();
     }
   }, [mapboxToken, mapInitialized, isInitializing]);
+
+  // Separate effect to watch for container availability
+  useEffect(() => {
+    if (mapContainer.current && mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing) {
+      console.log('Container became available, initializing map');
+      initializeMap();
+    }
+  }, [mapContainer.current, mapboxToken, mapInitialized, isInitializing]);
 
   const initializeMap = async () => {
     if (!mapContainer.current || !mapboxToken || mapInitialized || isInitializing) {
