@@ -19,19 +19,22 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
       isInitializing: isInitializing
     });
     
-    if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing && mapContainer.current) {
-      console.log('All conditions met, initializing map');
-      initializeMap();
+    if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing) {
+      // Use a slight delay to ensure tab content is fully rendered
+      const checkContainer = () => {
+        if (mapContainer.current) {
+          console.log('Container found, initializing map');
+          initializeMap();
+        } else {
+          console.log('Container not ready, retrying in 100ms');
+          setTimeout(checkContainer, 100);
+        }
+      };
+      
+      // Start checking immediately
+      checkContainer();
     }
   }, [mapboxToken, mapInitialized, isInitializing]);
-
-  // Separate effect to watch for container availability
-  useEffect(() => {
-    if (mapContainer.current && mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing) {
-      console.log('Container became available, initializing map');
-      initializeMap();
-    }
-  }, [mapContainer.current, mapboxToken, mapInitialized, isInitializing]);
 
   const initializeMap = async () => {
     if (!mapContainer.current || !mapboxToken || mapInitialized || isInitializing) {
