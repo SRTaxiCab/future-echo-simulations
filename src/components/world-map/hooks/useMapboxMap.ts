@@ -9,6 +9,21 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
   const [isInitializing, setIsInitializing] = useState(false);
   const [initError, setInitError] = useState<string>('');
 
+  const handleResize = () => {
+    if (map.current) {
+      try {
+        map.current.resize();
+      } catch (e) {
+        console.warn('Map resize failed:', e);
+      }
+    }
+  };
+
+  const isContainerReady = () => {
+    const el = mapContainer.current;
+    return !!el && el.offsetHeight > 0 && el.offsetWidth > 0;
+  };
+
   // Initialize map when token is available and container is ready
   useEffect(() => {
     console.log('Map init effect triggered:', {
@@ -26,16 +41,20 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
       
       const checkContainer = () => {
         attempts++;
-        console.log(`Attempt ${attempts}: Container available:`, !!mapContainer.current);
+        const ready = isContainerReady();
+        console.log(`Attempt ${attempts}: container ready=${ready}`, {
+          hasEl: !!mapContainer.current,
+          size: mapContainer.current ? { w: mapContainer.current.offsetWidth, h: mapContainer.current.offsetHeight } : null
+        });
         
-        if (mapContainer.current) {
-          console.log('Container found, initializing map');
+        if (ready) {
+          console.log('Container ready, initializing map');
           initializeMap();
         } else if (attempts < maxAttempts) {
           console.log(`Container not ready, retrying in 200ms (attempt ${attempts})`);
           setTimeout(checkContainer, 200); // Longer delay
         } else {
-          console.log('Max attempts reached, container still not available');
+          console.log('Max attempts reached, container still not ready');
           console.log('Container element:', mapContainer.current);
         }
       };
@@ -135,6 +154,14 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
             .setPopup(popup)
             .addTo(map.current!);
         });
+
+        // Ensure proper sizing after load
+        handleResize();
+        setTimeout(handleResize, 100);
+        setTimeout(handleResize, 500);
+
+        // Listen for window resizes
+        window.addEventListener('resize', handleResize);
       });
 
       // Handle errors
@@ -170,6 +197,7 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
         console.log('Cleaning up map');
         map.current.remove();
       }
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 

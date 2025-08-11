@@ -25,7 +25,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mapContainer, onToke
       <CardContent>
         <div 
           ref={mapContainer} 
-          className="w-full h-[500px] rounded-lg border"
+          className="w-full h-[500px] md:h-[600px] rounded-lg border relative overflow-hidden"
           style={{
             background: 'linear-gradient(45deg, #0f172a, #1e293b)'
           }}
