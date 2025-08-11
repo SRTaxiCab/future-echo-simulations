@@ -81,12 +81,19 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
     try {
       console.log('Setting Mapbox access token');
       mapboxgl.accessToken = mapboxToken.trim();
+
+      if (!mapboxgl.supported()) {
+        console.error('Mapbox GL not supported: WebGL missing or blocked');
+        setInitError('WebGL not supported or disabled in this environment.');
+        setIsInitializing(false);
+        return;
+      }
       
       console.log('Creating new Mapbox map');
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/dark-v11',
-        projection: 'globe' as any,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        projection: 'mercator' as any,
         zoom: 1.5,
         center: [0, 20],
         pitch: 0,
