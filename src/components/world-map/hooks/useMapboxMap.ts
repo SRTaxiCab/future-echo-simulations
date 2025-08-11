@@ -21,7 +21,9 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
 
   const isContainerReady = () => {
     const el = mapContainer.current;
-    return !!el && el.offsetHeight > 0 && el.offsetWidth > 0;
+    if (!el) return false;
+    const cs = window.getComputedStyle(el);
+    return el.offsetHeight > 0 && el.offsetWidth > 0 && cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0';
   };
 
   // Initialize map when token is available and container is ready
@@ -164,8 +166,17 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
 
         // Ensure proper sizing after load
         handleResize();
-        setTimeout(handleResize, 100);
-        setTimeout(handleResize, 500);
+        setTimeout(handleResize, 50);
+        setTimeout(handleResize, 250);
+        setTimeout(handleResize, 1000);
+        map.current?.triggerRepaint();
+
+        // Also after style load
+        map.current.on('style.load', () => {
+          handleResize();
+          setTimeout(handleResize, 50);
+          map.current?.triggerRepaint();
+        });
 
         // Listen for window resizes
         window.addEventListener('resize', handleResize);
