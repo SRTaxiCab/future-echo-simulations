@@ -12,6 +12,7 @@ import { EventDetailsPanel } from './world-map/EventDetailsPanel';
 import { ActiveEventsPanel } from './world-map/ActiveEventsPanel';
 import { Globe, AlertCircle } from 'lucide-react';
 import { type GlobalEvent } from './world-map/data';
+import { TokenStatus } from './world-map/TokenStatus';
 
 interface WorldMapProps {
   className?: string;
@@ -102,6 +103,14 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
   // Render main map interface
   return (
     <div className={className}>
+      <TokenStatus 
+        token={mapboxToken}
+        onRefresh={() => setMapboxToken(localStorage.getItem('mapbox-token') || '')}
+        onReset={() => {
+          localStorage.removeItem('mapbox-token');
+          setMapboxToken('');
+        }}
+      />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Map */}
         <div className="lg:col-span-2">
