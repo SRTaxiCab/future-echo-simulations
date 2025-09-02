@@ -83,6 +83,7 @@
     filter: blur(0.5px);
     mask: linear-gradient(black, black) content-box content-box, linear-gradient(black, black);
     mask-composite: exclude;
+    pointer-events: none;
   }
 
   .neural-border {
