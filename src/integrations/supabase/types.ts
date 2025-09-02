@@ -279,6 +279,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_user_is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       get_user_clearance: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["classification_level"]
