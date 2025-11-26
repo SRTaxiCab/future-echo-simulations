@@ -12,6 +12,8 @@ const Setup = () => {
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+    
     const checkSetupStatus = async () => {
       try {
         console.log('Setup: Checking setup status...');
@@ -28,10 +30,12 @@ const Setup = () => {
           console.log('Setup: Legacy setup check result:', setupComplete);
         }
         
+        if (!mounted) return;
+        
         if (setupComplete) {
-          setIsSetupNeeded(false);
           console.log('Setup: Already complete, redirecting to dashboard...');
-          navigate('/dashboard', { replace: true });
+          // Use window.location to force a full navigation and break any redirect loops
+          window.location.href = '/dashboard';
           return;
         }
 
@@ -39,15 +43,23 @@ const Setup = () => {
         setConnectionError(null);
       } catch (error) {
         console.error('Setup: Error checking setup status:', error);
-        setConnectionError('Unable to connect to database. Setup will use local storage.');
-        setIsSetupNeeded(true);
+        if (mounted) {
+          setConnectionError('Unable to connect to database. Setup will use local storage.');
+          setIsSetupNeeded(true);
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkSetupStatus();
-  }, [navigate]);
+    
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleSetupComplete = () => {
     console.log('Setup: Completed successfully');
