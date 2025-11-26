@@ -94,9 +94,9 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
       console.log('Creating new Mapbox map');
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
+        style: 'mapbox://styles/mapbox/dark-v11',
         projection: 'mercator' as any,
-        zoom: 1.5,
+        zoom: 2,
         center: [0, 20],
         pitch: 0,
       });
@@ -120,8 +120,8 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
 
         // Add atmosphere effects
         map.current.setFog({
-          color: 'rgb(30, 30, 50)',
-          'high-color': 'rgb(50, 50, 80)',
+          color: 'rgb(15, 23, 42)',
+          'high-color': 'rgb(30, 41, 59)',
           'horizon-blend': 0.3,
         });
 
@@ -149,12 +149,12 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
 
           // Create popup
           const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div style="color: black; font-size: 12px;">
-              <h4 style="margin: 0 0 5px 0; font-weight: bold;">${event.title}</h4>
-              <p style="margin: 0 0 3px 0;"><strong>Country:</strong> ${event.country}</p>
-              <p style="margin: 0 0 3px 0;"><strong>Probability:</strong> ${event.probability}%</p>
-              <p style="margin: 0 0 3px 0;"><strong>Impact:</strong> ${event.impact}</p>
-              <p style="margin: 0;">${event.description}</p>
+            <div style="background: rgb(15, 23, 42); color: rgb(148, 163, 184); font-size: 12px; padding: 8px; border: 1px solid rgb(51, 65, 85); border-radius: 4px;">
+              <h4 style="margin: 0 0 8px 0; font-weight: bold; color: rgb(6, 182, 212); font-family: monospace;">${event.title}</h4>
+              <p style="margin: 0 0 4px 0; font-size: 11px;"><strong style="color: rgb(148, 163, 184);">Country:</strong> ${event.country}</p>
+              <p style="margin: 0 0 4px 0; font-size: 11px;"><strong style="color: rgb(148, 163, 184);">Probability:</strong> <span style="color: ${event.probability > 75 ? '#ef4444' : event.probability > 60 ? '#f59e0b' : '#10b981'};">${event.probability}%</span></p>
+              <p style="margin: 0 0 4px 0; font-size: 11px;"><strong style="color: rgb(148, 163, 184);">Impact:</strong> <span style="color: ${event.impact === 'high' ? '#ef4444' : event.impact === 'medium' ? '#f59e0b' : '#10b981'}; text-transform: uppercase;">${event.impact}</span></p>
+              <p style="margin: 4px 0 0 0; font-size: 11px; color: rgb(148, 163, 184); border-top: 1px solid rgb(51, 65, 85); padding-top: 4px;">${event.description}</p>
             </div>
           `);
 
