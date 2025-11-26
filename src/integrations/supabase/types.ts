@@ -20,7 +20,7 @@ export type Database = {
           created_at: string | null
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource_id: string | null
           resource_type: string | null
           user_agent: string | null
@@ -31,7 +31,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           user_agent?: string | null
@@ -42,7 +42,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           user_agent?: string | null
@@ -279,10 +279,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      current_user_is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      current_user_is_admin: { Args: never; Returns: boolean }
       get_user_clearance: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["classification_level"]
@@ -291,10 +288,12 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["classification_level"]
       }
-      get_user_role: {
-        Args: Record<PropertyKey, never> | { user_uuid: string }
-        Returns: string
-      }
+      get_user_role:
+        | { Args: never; Returns: string }
+        | {
+            Args: { user_uuid: string }
+            Returns: Database["public"]["Enums"]["user_role"]
+          }
       get_user_role_safe: {
         Args: { user_uuid: string }
         Returns: {
@@ -306,14 +305,17 @@ export type Database = {
           user_id: string
         }[]
       }
-      is_admin: {
-        Args: { user_uuid: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
         Returns: boolean
       }
-      is_user_admin: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
+      is_admin:
+        | { Args: { user_uuid: string }; Returns: boolean }
+        | { Args: never; Returns: boolean }
+      is_user_admin: { Args: { user_uuid: string }; Returns: boolean }
     }
     Enums: {
       classification_level:
