@@ -25,10 +25,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mapContainer, onToke
       <CardContent>
         <div 
           ref={mapContainer} 
-          className="w-full h-[500px] md:h-[600px] rounded-lg border relative overflow-hidden"
-          style={{
-            background: 'linear-gradient(45deg, #0f172a, #1e293b)'
-          }}
+          className="w-full h-[500px] md:h-[600px] rounded-lg border border-border relative overflow-hidden bg-slate-900"
         />
         <div className="mt-4">
           <h4 className="text-sm font-medium mb-2">Impact Legend</h4>
