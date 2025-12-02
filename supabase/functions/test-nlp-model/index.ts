@@ -87,7 +87,7 @@ serve(async (req) => {
     console.error('Error in test-nlp-model function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         success: false 
       }),
       {

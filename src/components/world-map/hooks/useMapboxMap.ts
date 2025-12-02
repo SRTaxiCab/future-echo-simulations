@@ -96,9 +96,10 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/dark-v11',
         projection: 'mercator' as any,
-        zoom: 2,
-        center: [0, 20],
+        zoom: 1.5,
+        center: [20, 30],
         pitch: 0,
+        attributionControl: false,
       });
 
       // Add navigation controls
@@ -118,11 +119,13 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
 
         if (!map.current) return;
 
-        // Add atmosphere effects
+        // Add atmosphere effects for better visibility
         map.current.setFog({
-          color: 'rgb(15, 23, 42)',
-          'high-color': 'rgb(30, 41, 59)',
-          'horizon-blend': 0.3,
+          color: 'rgb(30, 41, 59)',
+          'high-color': 'rgb(51, 65, 85)',
+          'horizon-blend': 0.1,
+          'space-color': 'rgb(15, 23, 42)',
+          'star-intensity': 0.5,
         });
 
         // Add event markers
