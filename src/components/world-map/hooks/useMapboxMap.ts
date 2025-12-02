@@ -94,11 +94,9 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
       console.log('Creating new Mapbox map');
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        projection: 'mercator' as any,
+        style: 'mapbox://styles/mapbox/light-v11',
         zoom: 2,
-        center: [0, 30],
-        pitch: 0,
+        center: [0, 20],
       });
 
       // Add navigation controls
@@ -109,7 +107,6 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
         'top-right'
       );
 
-      // Handle successful load
       map.current.on('load', () => {
         console.log('Map loaded successfully');
         setMapInitialized(true);
@@ -117,15 +114,6 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
         setInitError('');
 
         if (!map.current) return;
-
-        // Add atmosphere effects for better visibility
-        map.current.setFog({
-          color: 'rgb(30, 41, 59)',
-          'high-color': 'rgb(51, 65, 85)',
-          'horizon-blend': 0.1,
-          'space-color': 'rgb(15, 23, 42)',
-          'star-intensity': 0.5,
-        });
 
         // Add event markers
         globalEvents.forEach((event) => {
