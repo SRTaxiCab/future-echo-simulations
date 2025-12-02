@@ -94,12 +94,11 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
       console.log('Creating new Mapbox map');
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/dark-v11',
+        style: 'mapbox://styles/mapbox/streets-v12',
         projection: 'mercator' as any,
-        zoom: 1.5,
-        center: [20, 30],
+        zoom: 2,
+        center: [0, 30],
         pitch: 0,
-        attributionControl: false,
       });
 
       // Add navigation controls
@@ -214,11 +213,16 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
   // Cleanup
   useEffect(() => {
     return () => {
-      if (map.current) {
-        console.log('Cleaning up map');
-        map.current.remove();
-      }
       window.removeEventListener('resize', handleResize);
+      if (map.current) {
+        try {
+          console.log('Cleaning up map');
+          map.current.remove();
+          map.current = null;
+        } catch (e) {
+          console.warn('Map cleanup warning:', e);
+        }
+      }
     };
   }, []);
 
