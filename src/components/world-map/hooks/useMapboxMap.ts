@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { globalEvents, type GlobalEvent } from '../data';
 
-export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalEvent) => void) => {
+export const useMapboxMap = (
+  mapboxToken: string, 
+  onEventSelect: (event: GlobalEvent) => void,
+  mapTheme: 'light' | 'dark' = 'light'
+) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapInitialized, setMapInitialized] = useState(false);
@@ -34,12 +38,13 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
       tokenLength: mapboxToken?.length,
       hasContainer: !!mapContainer.current,
       isInitialized: mapInitialized,
-      isInitializing: isInitializing
+      isInitializing: isInitializing,
+      theme: mapTheme
     });
     
     if (mapboxToken && mapboxToken.trim() && !mapInitialized && !isInitializing) {
       let attempts = 0;
-      const maxAttempts = 20; // Increased attempts
+      const maxAttempts = 20;
       
       const checkContainer = () => {
         attempts++;
@@ -54,17 +59,16 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
           initializeMap();
         } else if (attempts < maxAttempts) {
           console.log(`Container not ready, retrying in 200ms (attempt ${attempts})`);
-          setTimeout(checkContainer, 200); // Longer delay
+          setTimeout(checkContainer, 200);
         } else {
           console.log('Max attempts reached, container still not ready');
           console.log('Container element:', mapContainer.current);
         }
       };
       
-      // Start checking with initial delay to allow DOM to render
       setTimeout(checkContainer, 100);
     }
-  }, [mapboxToken, mapInitialized, isInitializing]);
+  }, [mapboxToken, mapInitialized, isInitializing, mapTheme]);
 
   const initializeMap = async () => {
     if (!mapContainer.current || !mapboxToken || mapInitialized || isInitializing) {
@@ -91,12 +95,17 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
         return;
       }
       
-      console.log('Creating new Mapbox map');
+      const mapStyle = mapTheme === 'light' 
+        ? 'mapbox://styles/mapbox/light-v11' 
+        : 'mapbox://styles/mapbox/dark-v11';
+      
+      console.log('Creating new Mapbox map with style:', mapStyle);
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v11',
+        style: mapStyle,
         zoom: 2,
         center: [0, 20],
+        attributionControl: true,
       });
 
       // Add navigation controls
@@ -197,6 +206,57 @@ export const useMapboxMap = (mapboxToken: string, onEventSelect: (event: GlobalE
     setIsInitializing(false);
     setInitError('');
   };
+
+  // Handle theme changes
+  useEffect(() => {
+    if (map.current && mapInitialized) {
+      const mapStyle = mapTheme === 'light' 
+        ? 'mapbox://styles/mapbox/light-v11' 
+        : 'mapbox://styles/mapbox/dark-v11';
+      
+      console.log('Changing map style to:', mapStyle);
+      map.current.setStyle(mapStyle);
+      
+      // Re-add markers after style loads
+      map.current.once('style.load', () => {
+        globalEvents.forEach((event) => {
+          const el = document.createElement('div');
+          el.className = 'marker';
+          el.style.cssText = `
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            background-color: ${
+              event.impact === 'high' ? '#ef4444' :
+              event.impact === 'medium' ? '#f59e0b' : '#10b981'
+            };
+            animation: pulse 2s infinite;
+          `;
+
+          el.addEventListener('click', () => {
+            onEventSelect(event);
+          });
+
+          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+            <div style="background: ${mapTheme === 'light' ? 'white' : 'rgb(15, 23, 42)'}; color: ${mapTheme === 'light' ? 'rgb(15, 23, 42)' : 'rgb(148, 163, 184)'}; font-size: 12px; padding: 8px; border: 1px solid ${mapTheme === 'light' ? 'rgb(226, 232, 240)' : 'rgb(51, 65, 85)'}; border-radius: 4px;">
+              <h4 style="margin: 0 0 8px 0; font-weight: bold; color: rgb(6, 182, 212); font-family: monospace;">${event.title}</h4>
+              <p style="margin: 0 0 4px 0; font-size: 11px;"><strong>Country:</strong> ${event.country}</p>
+              <p style="margin: 0 0 4px 0; font-size: 11px;"><strong>Probability:</strong> <span style="color: ${event.probability > 75 ? '#ef4444' : event.probability > 60 ? '#f59e0b' : '#10b981'};">${event.probability}%</span></p>
+              <p style="margin: 0 0 4px 0; font-size: 11px;"><strong>Impact:</strong> <span style="color: ${event.impact === 'high' ? '#ef4444' : event.impact === 'medium' ? '#f59e0b' : '#10b981'}; text-transform: uppercase;">${event.impact}</span></p>
+              <p style="margin: 4px 0 0 0; font-size: 11px; border-top: 1px solid ${mapTheme === 'light' ? 'rgb(226, 232, 240)' : 'rgb(51, 65, 85)'}; padding-top: 4px;">${event.description}</p>
+            </div>
+          `);
+
+          new mapboxgl.Marker(el)
+            .setLngLat(event.coordinates)
+            .setPopup(popup)
+            .addTo(map.current!);
+        });
+      });
+    }
+  }, [mapTheme, mapInitialized]);
 
   // Cleanup
   useEffect(() => {
