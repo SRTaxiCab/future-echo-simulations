@@ -1,14 +1,21 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Globe } from 'lucide-react';
+import { Globe, Sun, Moon } from 'lucide-react';
 
 interface MapContainerProps {
   mapContainer: React.RefObject<HTMLDivElement>;
+  mapTheme: 'light' | 'dark';
+  onThemeToggle: () => void;
   onTokenReset: () => void;
 }
 
-export const MapContainer: React.FC<MapContainerProps> = ({ mapContainer, onTokenReset }) => {
+export const MapContainer: React.FC<MapContainerProps> = ({ 
+  mapContainer, 
+  mapTheme, 
+  onThemeToggle, 
+  onTokenReset 
+}) => {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -17,15 +24,26 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mapContainer, onToke
             <Globe className="h-5 w-5 mr-2" />
             Global Impact Visualization
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={onTokenReset}>
-            Reset Token
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onThemeToggle}
+              title={`Switch to ${mapTheme === 'light' ? 'dark' : 'light'} theme`}
+            >
+              {mapTheme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onTokenReset}>
+              Reset Token
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         <div 
           ref={mapContainer} 
-          className="w-full h-[500px] md:h-[600px] rounded-lg border border-border"
+          className="w-full h-[500px] md:h-[600px] rounded-lg border border-border bg-muted/20"
+          style={{ minHeight: '500px' }}
         />
         <div className="mt-4">
           <h4 className="text-sm font-medium mb-2">Impact Legend</h4>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -10,7 +9,7 @@ import { MapContainer } from './world-map/MapContainer';
 import { RegionalRiskPanel } from './world-map/RegionalRiskPanel';
 import { EventDetailsPanel } from './world-map/EventDetailsPanel';
 import { ActiveEventsPanel } from './world-map/ActiveEventsPanel';
-import { Globe, AlertCircle } from 'lucide-react';
+import { Globe, AlertCircle, Sun, Moon } from 'lucide-react';
 import { type GlobalEvent } from './world-map/data';
 import { TokenStatus } from './world-map/TokenStatus';
 
@@ -21,21 +20,32 @@ interface WorldMapProps {
 export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
   const [selectedEvent, setSelectedEvent] = useState<GlobalEvent | null>(null);
   const [mapboxToken, setMapboxToken] = useState('');
+  const [mapTheme, setMapTheme] = useState<'light' | 'dark'>('light');
 
   // Load token from localStorage
   useEffect(() => {
     const savedToken = localStorage.getItem('mapbox-token');
+    const savedTheme = localStorage.getItem('map-theme') as 'light' | 'dark' | null;
     if (savedToken && savedToken.trim()) {
       setMapboxToken(savedToken);
     }
+    if (savedTheme) {
+      setMapTheme(savedTheme);
+    }
   }, []);
+
+  const toggleTheme = () => {
+    const newTheme = mapTheme === 'light' ? 'dark' : 'light';
+    setMapTheme(newTheme);
+    localStorage.setItem('map-theme', newTheme);
+  };
 
   const {
     mapContainer,
     mapInitialized,
     isInitializing,
     initError: mapInitError
-  } = useMapboxMap(mapboxToken, setSelectedEvent);
+  } = useMapboxMap(mapboxToken, setSelectedEvent, mapTheme);
 
   // Show setup message if no token
   if (!mapboxToken) {
@@ -116,6 +126,8 @@ export const WorldMap: React.FC<WorldMapProps> = ({ className }) => {
         <div className="lg:col-span-2">
           <MapContainer 
             mapContainer={mapContainer}
+            mapTheme={mapTheme}
+            onThemeToggle={toggleTheme}
             onTokenReset={() => {
               localStorage.removeItem('mapbox-token');
               setMapboxToken('');
